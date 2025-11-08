@@ -1,7 +1,7 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-
+import { Image, Pressable, StyleSheet, Text, View, Button, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 
 import { Fonts } from '@/constants/theme';
 
@@ -42,7 +42,6 @@ const BRAND_LOGOS = {
 
 const formatNumber = (number: string) => number.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim();
 
-
 export default function CreditCard({
   description,
   cardholder,
@@ -55,7 +54,11 @@ export default function CreditCard({
   const palette = CARD_VARIANTS[variant];
   const brandLogo = BRAND_LOGOS[brand as keyof typeof BRAND_LOGOS];
 
-
+  const copyToClipboard = async () => {
+    await Clipboard.setStringAsync(number);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert('Copied!', `${number} copied to clipboard ✅`);
+  };
 
   return (
     <View style={[styles.card, { backgroundColor: palette.background }]}>
@@ -70,7 +73,9 @@ export default function CreditCard({
         </View>
       </View>
 
-      <Text style={styles.number}>{formatNumber(number)}</Text>
+      <Pressable onPress={copyToClipboard} style={styles.copyNumber}>
+        <Text style={styles.number}>{formatNumber(number)}</Text>
+      </Pressable>
 
       <View style={styles.row}>
         <View>
@@ -155,7 +160,7 @@ const styles = StyleSheet.create({
   },
   number: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 23,
     letterSpacing: 2,
     fontFamily: Fonts.mono,
   },
@@ -167,8 +172,18 @@ const styles = StyleSheet.create({
   },
   value: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     marginTop: 4,
+  },
+  copyNumber: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingVertical: 5,
+    paddingHorizontal: 7,
+    borderRadius: 14,
+    alignSelf: 'flex-start',
+    marginVertical: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
 });
