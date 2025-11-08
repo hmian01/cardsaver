@@ -23,7 +23,6 @@ export default function SettingsScreen() {
         </ThemedText>
       </ThemedView>
 
-      {/* TODO: haptics upon switch state change */}
       <ThemedView style={styles.section}>
         <ThemedText type="subtitle">Preferences</ThemedText>
         <View style={styles.row}>
