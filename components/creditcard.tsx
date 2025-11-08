@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View, Button, Alert } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 
@@ -13,6 +13,7 @@ type CreditCardProps = {
   brand: string;
   cvv?: string;
   variant?: keyof typeof CARD_VARIANTS;
+  onCopy?: () => void;
 };
 
 const CARD_VARIANTS = {
@@ -50,6 +51,7 @@ export default function CreditCard({
   brand = 'OTHER',
   cvv,
   variant = 'midnight',
+  onCopy,
 }: CreditCardProps) {
   const palette = CARD_VARIANTS[variant];
   const brandLogo = BRAND_LOGOS[brand as keyof typeof BRAND_LOGOS];
@@ -57,7 +59,7 @@ export default function CreditCard({
   const copyToClipboard = async () => {
     await Clipboard.setStringAsync(number);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Copied!', `${number} copied to clipboard ✅`);
+    onCopy?.();
   };
 
   return (
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
   },
   logoImage: {
     width: 70,
-    height: 40,
+    height: 35,
     marginLeft: 12,
   },
   number: {
