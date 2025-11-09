@@ -75,7 +75,7 @@ export default function CreditCard({
         </View>
       </View>
 
-      <Pressable onPress={copyToClipboard} style={styles.copyNumber}>
+      <Pressable onPress={copyToClipboard} style={styles.copyNumber} hitSlop={30}>
         <Text style={styles.number}>{formatNumber(number)}</Text>
       </Pressable>
 

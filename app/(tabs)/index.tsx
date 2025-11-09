@@ -46,6 +46,7 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.primaryCta}
             onPress={addNew}
+            hitSlop={20}
           >
             <MaterialIcons name="add" size={18} color="#050710" />
             <Text style={styles.primaryCtaText}>Add new card</Text>
@@ -53,6 +54,7 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.secondaryCta}
             onPress={viewCards}
+            hitSlop={20}
           >
             <Text style={styles.secondaryCtaText}>View vault</Text>
           </TouchableOpacity>

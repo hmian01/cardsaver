@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 import CreditCard from '@/components/creditcard';
 import Toast from '@/components/toast';
@@ -19,6 +22,28 @@ import { cardsStore, type StoredCard } from '@/store/cardsStore';
 
 const sanitize = (value: string) => value.replace(/\s+/g, '').toLowerCase();
 
+let hasUnlockedVault = false;
+
+const getAuthErrorMessage = (error?: LocalAuthentication.LocalAuthenticationError) => {
+  switch (error) {
+    case 'user_cancel':
+    case 'system_cancel':
+    case 'app_cancel':
+      return 'Face ID was canceled. Please try again.';
+    case 'authentication_failed':
+      return 'Face ID did not recognize you. Try again.';
+    case 'lockout':
+      return 'Face ID is locked because of too many attempts.';
+    case 'not_enrolled':
+    case 'passcode_not_set':
+      return 'Please set up Face ID on your device to unlock the vault.';
+    case 'not_available':
+      return 'Face ID is not available on this device.';
+    default:
+      return 'Unable to verify your identity right now.';
+  }
+};
+
 export default function CardsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,6 +51,10 @@ export default function CardsScreen() {
   const [toastMessage, setToastMessage] = useState('');
   const [cardPendingDelete, setCardPendingDelete] = useState<StoredCard | null>(null);
   const pendingToastReset = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isVaultUnlocked, setIsVaultUnlocked] = useState(() => hasUnlockedVault);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authInFlight, setAuthInFlight] = useState(false);
+  const [biometricsReady, setBiometricsReady] = useState(true);
 
   const triggerToast = (message: string) => {
     if (pendingToastReset.current) {
@@ -98,6 +127,94 @@ export default function CardsScreen() {
     router.push(`/card-editor?cardId=${cardId}&returnTo=${cardsReturn}`);
   };
 
+  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const cancelledUnlock = async () =>{
+    await wait(2000);
+    setAuthInFlight(false);
+  }
+
+  const attemptUnlock = useCallback(async () => {
+    if (isVaultUnlocked || authInFlight) {
+      return;
+    }
+
+    setAuthError(null);
+    setAuthInFlight(true);
+    setBiometricsReady(true);
+
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        setAuthError('This device does not support biometric authentication.');
+        setBiometricsReady(false);
+        return;
+      }
+
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!isEnrolled) {
+        setAuthError('Enroll Face ID on this device to unlock the vault.');
+        setBiometricsReady(false);
+        return;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Unlock Cards',
+        fallbackLabel: 'Enter Passcode',
+        cancelLabel: 'Cancel',
+      });
+
+      if (result.success) {
+        hasUnlockedVault = true;
+        setIsVaultUnlocked(true);
+      } else {
+        setAuthError(getAuthErrorMessage(result.error));
+      }
+    } catch (error) {
+      console.warn('Face ID unlock failed', error);
+      setAuthError('Something went wrong. Please try again.');
+    } finally {
+      cancelledUnlock();
+    }
+  }, [authInFlight, isVaultUnlocked]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isVaultUnlocked) {
+        attemptUnlock();
+      }
+    }, [attemptUnlock, isVaultUnlocked]),
+  );
+
+  if (!isVaultUnlocked) {
+    return (
+      <View style={styles.lockScreen}>
+        <View style={styles.lockIconWrapper}>
+          <MaterialIcons name="lock" size={32} color="#9EE0FF" />
+        </View>
+        <Text style={styles.lockTitle}>Face ID required</Text>
+        <Text style={styles.lockSubtitle}>
+          For your security, the card vault stays hidden until you authenticate.
+        </Text>
+        {authError && <Text style={styles.lockError}>{authError}</Text>}
+        <TouchableOpacity
+          style={[
+            styles.unlockButton,
+            (!biometricsReady || authInFlight) && styles.unlockButtonDisabled,
+          ]}
+          onPress={attemptUnlock}
+          disabled={!biometricsReady || authInFlight}
+        >
+          {authInFlight ? (
+            <ActivityIndicator color="#050710" />
+          ) : (
+            <Text style={styles.unlockButtonText}>Unlock with Face ID</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -107,7 +224,7 @@ export default function CardsScreen() {
             <Text style={styles.heroTitle}>You have {cards.length} saved cards</Text>
             <Text style={styles.heroSubtitle}>Search, edit, or add new payment methods.</Text>
           </View>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
+          <TouchableOpacity style={styles.addButton} onPress={handleAddNew} hitSlop={20}>
             <MaterialIcons name="add" size={22} color="#050710" />
           </TouchableOpacity>
         </View>
@@ -122,7 +239,7 @@ export default function CardsScreen() {
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={20}>
               <MaterialIcons name="close" size={18} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           )}
@@ -138,7 +255,7 @@ export default function CardsScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            filteredCards.reverse().map((card) => (
+            filteredCards.map((card) => (
               <View key={card.id} style={styles.cardWrapper}>
                 <CreditCard {...card} onCopy={handleCopy} />
                 <View style={styles.cardActions}>
@@ -154,6 +271,7 @@ export default function CardsScreen() {
                     style={styles.iconButton}
                     onPress={() => handleEdit(card.id)}
                     accessibilityLabel={`Edit ${card.description}`}
+                    hitSlop={20}
                   >
                     <MaterialIcons name="edit" size={18} color="#fff" />
                   </TouchableOpacity>
@@ -365,5 +483,53 @@ const styles = StyleSheet.create({
   confirmText: {
     color: '#050710',
     fontWeight: '700',
+  },
+  lockScreen: {
+    flex: 1,
+    backgroundColor: '#050710',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    gap: 16,
+  },
+  lockIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(158,224,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(158,224,255,0.4)',
+  },
+  lockTitle: {
+    color: '#fff',
+    fontSize: 24,
+    fontFamily: Fonts.rounded,
+    textAlign: 'center',
+  },
+  lockSubtitle: {
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+  },
+  lockError: {
+    color: '#FF6B6B',
+    textAlign: 'center',
+  },
+  unlockButton: {
+    marginTop: 12,
+    width: '100%',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#9EE0FF',
+  },
+  unlockButtonDisabled: {
+    opacity: 0.5,
+  },
+  unlockButtonText: {
+    color: '#050710',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

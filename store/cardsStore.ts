@@ -18,7 +18,7 @@ type Listener = (cards: StoredCard[]) => void;
 let cards: StoredCard[] = [
   {
     id: 'primary',
-    description: 'moms chase freedom',
+    description: 'chase freedom',
     cardholder: 'Alexis Taylor',
     number: '4111111111114242',
     expiry: '08/27',
@@ -38,7 +38,7 @@ let cards: StoredCard[] = [
   },
   {
     id: 'business',
-    description: 'sapphire',
+    description: 'amex biz gold',
     cardholder: 'Alexis Taylor',
     number: '379354082930004',
     expiry: '11/25',
@@ -48,13 +48,13 @@ let cards: StoredCard[] = [
   },
   {
     id: 'other',
-    description: 'prime visa',
+    description: 'discover card',
     cardholder: 'Alexis Taylor',
-    number: '379354082930004',
+    number: '6279354082930004',
     expiry: '11/25',
     cvv: '889',
     brand: 'OTHER',
-    variant: 'jade',
+    variant: 'midnight',
   },
 ];
 

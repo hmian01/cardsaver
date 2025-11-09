@@ -236,6 +236,7 @@ export default function CardEditorScreen() {
           <Pressable
             style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
             onPress={handleBack}
+            hitSlop={30}
           >
             <MaterialIcons size={22} color="#fff" name="arrow-back" />
           </Pressable>
@@ -304,7 +305,7 @@ export default function CardEditorScreen() {
             <View style={styles.col}>
               <Text style={styles.formLabel}>Expiry</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.ExpCvvInput]}
                 placeholder="MM/YY"
                 placeholderTextColor="#8C93AD"
                 keyboardType="number-pad"
@@ -316,7 +317,7 @@ export default function CardEditorScreen() {
             <View style={styles.col}>
               <Text style={styles.formLabel}>CVV</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.ExpCvvInput]}
                 placeholder="123"
                 placeholderTextColor="#8C93AD"
                 keyboardType="number-pad"
@@ -420,6 +421,7 @@ const styles = StyleSheet.create({
     height: 28,
   },
   previewNumber: {
+    marginTop: 20,
     color: '#fff',
     fontSize: 22,
     letterSpacing: 2,
@@ -461,7 +463,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     letterSpacing: 0.5,
-    marginTop: 6,
   },
   input: {
     backgroundColor: 'rgba(255,255,255,0.06)',
@@ -471,7 +472,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.2)',
-    marginTop: 4,
+    marginTop: 2,
+    marginBottom: 10
+  },
+  ExpCvvInput: {
+    marginTop: 6,
+    marginBottom: 10
   },
   row: {
     flexDirection: 'row',
