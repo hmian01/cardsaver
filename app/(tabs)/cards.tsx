@@ -118,7 +118,7 @@ export default function CardsScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            filteredCards.map((card) => (
+            filteredCards.reverse().map((card) => (
               <View key={card.id} style={styles.cardWrapper}>
                 <CreditCard {...card} onCopy={handleCopy} />
                 <View style={styles.cardActions}>

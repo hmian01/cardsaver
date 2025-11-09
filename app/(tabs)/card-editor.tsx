@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
 
@@ -117,17 +117,15 @@ export default function CardEditorScreen() {
 
   const [form, setForm] = useState<FormState>(() => buildFormFromCard(existingCard));
 
-  useEffect(() => {
-    if (existingCard) {
-      setForm(buildFormFromCard(existingCard));
-    }
-  }, [cardId, existingCard?.id]);
-
-  useEffect(() => {
-    if (!cardId) {
-      setForm(DEFAULT_FORM);
-    }
-  }, [cardId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (cardId && existingCard) {
+        setForm(buildFormFromCard(existingCard));
+      } else if (!cardId) {
+        setForm(DEFAULT_FORM);
+      }
+    }, [cardId, existingCard?.id]),
+  );
 
   useEffect(() => {
     if (cardId && !existingCard) {
