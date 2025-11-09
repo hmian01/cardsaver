@@ -52,7 +52,7 @@ export default function CardsScreen() {
           </ThemedText>
         </ThemedView>
         <View style={styles.cardStack}>
-          {cards.reverse().map((card) => (
+          {cards.map((card) => (
             <CreditCard key={card.id} {...card} onCopy={handleCopy} />
           ))}
         </View>
