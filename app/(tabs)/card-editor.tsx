@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,14 +9,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
 
 import { Fonts } from '@/constants/theme';
-import { cardsStore, type CardVariant } from '@/store/cardsStore';
+import { cardsStore, type CardVariant, type StoredCard } from '@/store/cardsStore';
 
 const VARIANT_OPTIONS: CardVariant[] = ['midnight', 'sunset', 'jade'];
 
@@ -27,14 +27,31 @@ type FormState = {
   cvv: string;
 };
 
+const DEFAULT_FORM: FormState = {
+  description: '',
+  cardholder: '',
+  number: '',
+  expiry: '',
+  cvv: '',
+};
+
+const BRAND_LOGOS = {
+  VISA: require('@/assets/images/visa-logo.png'),
+  MASTERCARD: require('@/assets/images/mastercard-logo.png'),
+  AMEX: require('@/assets/images/amex-logo.png'),
+  DISCOVER: require('@/assets/images/other-logo.png'),
+  OTHER: require('@/assets/images/other-logo.png'),
+} as const;
+
 const sanitizeNumber = (value: string) => value.replace(/\D/g, '');
 
-const detectBrand = (digits: string): string => {
+const detectBrand = (digits: string): keyof typeof BRAND_LOGOS => {
   if (!digits) return 'OTHER';
   const first = digits[0];
   if (first === '3') return 'AMEX';
   if (first === '4') return 'VISA';
   if (first === '5') return 'MASTERCARD';
+  if (first === '6') return 'DISCOVER';
   return 'OTHER';
 };
 
@@ -63,9 +80,10 @@ const normalizeExpiry = (value: string): string | null => {
   const digits = value.replace(/\D/g, '');
   if (digits.length < 4) return null;
   const month = digits.slice(0, 2);
-  const monthNum = parseInt(month, 10);
-  if (Number.isNaN(monthNum) || monthNum < 1 || monthNum > 12) return null;
-  let year = digits.slice(2);
+  const monthNum = Number(month);
+  if (!month || Number.isNaN(monthNum) || monthNum < 1 || monthNum > 12) return null;
+
+  const year = digits.slice(2);
   if (year.length === 2) {
     return `${month}/${year}`;
   }
@@ -79,29 +97,46 @@ const isValidCvv = (value: string) => value.length === 3 || value.length === 4;
 
 const getRandomVariant = () => VARIANT_OPTIONS[Math.floor(Math.random() * VARIANT_OPTIONS.length)];
 
-const BRAND_LOGOS = {
-  VISA: require('@/assets/images/visa-logo.png'),
-  MASTERCARD: require('@/assets/images/mastercard-logo.png'),
-  AMEX: require('@/assets/images/amex-logo.png'),
-  OTHER: require('@/assets/images/other-logo.png'),
-} as const;
+const buildFormFromCard = (card?: StoredCard): FormState => {
+  if (!card) return DEFAULT_FORM;
+  return {
+    description: card.description,
+    cardholder: card.cardholder,
+    number: formatCardNumber(card.number, card.brand.toUpperCase() === 'AMEX'),
+    expiry: card.expiry,
+    cvv: card.cvv ?? '',
+  };
+};
 
-export default function AddCardScreen() {
+export default function CardEditorScreen() {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>({
-    description: '',
-    cardholder: '',
-    number: '',
-    expiry: '',
-    cvv: '',
-  });
+  const params = useLocalSearchParams<{ cardId?: string }>();
+  const cardId = typeof params.cardId === 'string' ? params.cardId : undefined;
+  const existingCard = cardId ? cardsStore.getCardById(cardId) : undefined;
+  const isEditing = Boolean(cardId && existingCard);
+
+  const [form, setForm] = useState<FormState>(() => buildFormFromCard(existingCard));
+
+  useEffect(() => {
+    if (existingCard) {
+      setForm(buildFormFromCard(existingCard));
+    }
+  }, [cardId, existingCard?.id]);
+
+  useEffect(() => {
+    if (cardId && !existingCard) {
+      Alert.alert('Card not found', 'The card you are trying to edit no longer exists.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    }
+  }, [cardId, existingCard, router]);
 
   const detectedBrand = useMemo(() => {
     const digits = sanitizeNumber(form.number);
     return detectBrand(digits);
   }, [form.number]);
 
-  const brandLogo = BRAND_LOGOS[detectedBrand as keyof typeof BRAND_LOGOS];
+  const brandLogo = BRAND_LOGOS[detectedBrand];
 
   const handleNumberChange = (value: string) => {
     const digits = sanitizeNumber(value);
@@ -120,7 +155,10 @@ export default function AddCardScreen() {
     setForm((prev) => ({ ...prev, cvv: digits }));
   };
 
-  
+  const handleBack = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.back();
+  };
 
   const handleSubmit = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -138,7 +176,7 @@ export default function AddCardScreen() {
 
     if (brand === 'AMEX') {
       if (digits.length !== 15) {
-        Alert.alert('Card number', 'AMEX numbers must be 15 digits.');
+        Alert.alert('Card number', 'American Express numbers must be 15 digits.');
         return;
       }
     } else if (digits.length !== 16) {
@@ -156,27 +194,30 @@ export default function AddCardScreen() {
       return;
     }
 
-    const variant = getRandomVariant();
-
-    cardsStore.addCard({
-      description,
-      cardholder,
-      number: digits,
-      expiry: normalizedExpiry,
-      cvv: form.cvv,
-      brand,
-      variant,
-    });
+    if (isEditing && existingCard) {
+      cardsStore.updateCard(existingCard.id, {
+        description,
+        cardholder,
+        number: digits,
+        expiry: normalizedExpiry,
+        cvv: form.cvv,
+        brand,
+        variant: existingCard.variant,
+      });
+    } else {
+      cardsStore.addCard({
+        description,
+        cardholder,
+        number: digits,
+        expiry: normalizedExpiry,
+        cvv: form.cvv,
+        brand,
+        variant: getRandomVariant(),
+      });
+    }
 
     router.push('/(tabs)/cards');
   };
-
-  const handleBack = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.back();
-  };
-
-  
 
   return (
     <View style={styles.screen}>
@@ -186,35 +227,33 @@ export default function AddCardScreen() {
             style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
             onPress={handleBack}
           >
-            <MaterialIcons size={24} color="#fff" name="arrow-back" />
+            <MaterialIcons size={22} color="#fff" name="arrow-back" />
           </Pressable>
           <View style={styles.headerText}>
-            <Text style={styles.heading}>New card</Text>
-            <Text style={styles.subheading}>Store a payment method securely</Text>
+            <Text style={styles.heading}>{isEditing ? 'Edit card' : 'Add new card'}</Text>
+            <Text style={styles.subheading}>
+              {isEditing ? 'Update details securely' : 'Store a payment method securely'}
+            </Text>
           </View>
         </View>
 
         <View style={styles.cardPreview}>
-          <View style={styles.nicknameLogoRow}>
+          <View style={styles.previewTopRow}>
             <Text style={styles.previewTitle}>{form.description || 'Card nickname'}</Text>
-            <View style={styles.branding}>
-              <Image source={brandLogo} style={styles.logoImage}  resizeMode="contain"/>
-            </View>
+            <Image source={brandLogo} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.previewNumber}>{form.number || '•••• •••• •••• ••••'}</Text>
-          <View style={styles.previewRow}>
+          <View style={styles.previewRowLabels}>
             <Text style={styles.previewLabel}>Cardholder</Text>
-              <Text style={styles.previewLabel}>Exp</Text>
-              <Text style={styles.previewLabel}>CVV</Text>
+            <Text style={styles.previewLabel}>Expires</Text>
+            <Text style={styles.previewLabel}>CVV</Text>
           </View>
-          <View style={styles.previewRow}>
+          <View style={styles.previewRowValues}>
             <Text style={styles.previewValue}>
               {(form.cardholder || 'Your Name').toUpperCase()}
             </Text>
-            <View style={styles.expCvvRow}>
-              <Text style={styles.previewValue}>{form.expiry || 'MM/YY'}</Text>
-              <Text style={styles.previewValue}>{form.cvv || '***'}</Text>
-            </View>
+            <Text style={styles.previewValue}>{form.expiry || 'MM/YY'}</Text>
+            <Text style={styles.previewValue}>{form.cvv || '***'}</Text>
           </View>
         </View>
 
@@ -277,7 +316,7 @@ export default function AddCardScreen() {
           </View>
 
           <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
-            <Text style={styles.submitText}>Save card</Text>
+            <Text style={styles.submitText}>{isEditing ? 'Save changes' : 'Save card'}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -287,13 +326,13 @@ export default function AddCardScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    marginTop: 40,
     flex: 1,
     backgroundColor: '#050710',
+    marginTop: 50,
   },
   container: {
     padding: 24,
-    paddingBottom: 80,
+    paddingBottom: 100,
     gap: 20,
   },
   headerRow: {
@@ -344,37 +383,48 @@ const styles = StyleSheet.create({
   },
   cardPreview: {
     backgroundColor: '#111428',
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 24,
-    gap: 10,
+    gap: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(255,255,255,0.12)',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  previewTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   previewTitle: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
   },
+  logoImage: {
+    width: 64,
+    height: 28,
+  },
   previewNumber: {
     color: '#fff',
     fontSize: 22,
     letterSpacing: 2,
     fontFamily: Fonts.mono,
-    marginTop: 20,
-    marginBottom: 15,
   },
-  previewRow: {
+  previewRowLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 6,
+    marginTop: 18,
   },
-  expCvvRow: {
+  previewRowValues: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 80
+    marginTop: 4,
   },
   previewLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
     letterSpacing: 0.5,
   },
@@ -384,8 +434,9 @@ const styles = StyleSheet.create({
   },
   formCard: {
     backgroundColor: '#0F1324',
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 20,
+    gap: 6,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.05)',
   },
@@ -393,6 +444,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     letterSpacing: 0.5,
+    marginTop: 6,
   },
   input: {
     backgroundColor: 'rgba(255,255,255,0.06)',
@@ -402,8 +454,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.2)',
-    marginTop: 6,
-    marginBottom: 15,
+    marginTop: 4,
   },
   row: {
     flexDirection: 'row',
@@ -413,9 +464,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   submit: {
-    marginTop: 10,
+    marginTop: 16,
     backgroundColor: '#A5F276',
-    borderRadius: 16,
+    borderRadius: 18,
     paddingVertical: 14,
     alignItems: 'center',
   },
@@ -423,19 +474,5 @@ const styles = StyleSheet.create({
     color: '#050710',
     fontSize: 16,
     fontWeight: '700',
-  },
-  nicknameLogoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  branding: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoImage: {
-    width: 70,
-    height: 35,
-    marginLeft: 12,
   },
 });

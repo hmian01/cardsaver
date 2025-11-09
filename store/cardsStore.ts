@@ -67,6 +67,7 @@ const notify = () => {
 
 export const cardsStore = {
   getCards: () => [...cards],
+  getCardById: (id: string) => cards.find((card) => card.id === id),
   subscribe: (listener: Listener) => {
     listeners.add(listener);
     listener([...cards]);
@@ -78,6 +79,22 @@ export const cardsStore = {
       id: `card-${Date.now()}`,
     };
     cards = [...cards, newCard];
+    notify();
+  },
+  updateCard: (id: string, data: Omit<CardFormData, 'variant'> & { variant?: CardVariant }) => {
+    cards = cards.map((card) =>
+      card.id === id
+        ? {
+            ...card,
+            ...data,
+            variant: data.variant ?? card.variant,
+          }
+        : card,
+    );
+    notify();
+  },
+  removeCard: (id: string) => {
+    cards = cards.filter((card) => card.id !== id);
     notify();
   },
 };

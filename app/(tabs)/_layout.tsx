@@ -38,7 +38,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="addcard"
+        name="card-editor"
         options={{
           href: null,
         }}

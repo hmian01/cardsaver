@@ -16,7 +16,7 @@ export default function HomeScreen() {
 
   const totalCards = cards.length;
   const lastAdded = cards[cards.length - 1];
-  const featuredCards = cards.reverse().slice(0,2);
+  const featuredCards = cards.slice(-2).reverse();
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
@@ -31,7 +31,7 @@ export default function HomeScreen() {
           synced backups make checkout effortless.
         </Text>
         <View style={styles.heroActions}>
-          <TouchableOpacity style={styles.primaryCta} onPress={() => router.push('/addcard')}>
+          <TouchableOpacity style={styles.primaryCta} onPress={() => router.push('/card-editor')}>
             <MaterialIcons name="add" size={18} color="#050710" />
             <Text style={styles.primaryCtaText}>Add new card</Text>
           </TouchableOpacity>
