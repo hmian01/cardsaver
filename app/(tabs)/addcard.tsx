@@ -26,7 +26,8 @@ export default function AddCardScreen() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!form.description.trim() || !form.cardholder.trim() || !form.number.trim()) {
       Alert.alert('Missing info', 'Please fill out description, cardholder, and card number.');
       return;
