@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Haptics from 'expo-haptics';
+
 
 import { cardsStore, type CardFormData } from '@/store/cardsStore';
 import { Fonts } from '@/constants/theme';
@@ -33,10 +36,27 @@ export default function AddCardScreen() {
     router.push('/(tabs)/cards');
   };
 
+  const handleBack = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.back()
+  };
+
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.heading}>Card Details</Text>
+        
+        <View style={styles.headerRow}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.backButton,
+              pressed && styles.backButtonPressed,
+            ]}
+            onPress={handleBack}
+          >
+            <MaterialIcons size={28} color="#fff" name="arrow-back" />
+          </Pressable>
+          <Text style={styles.heading}>Card Details</Text>
+        </View>
 
         <Text style={styles.label}>Nickname</Text>
         <TextInput
@@ -57,7 +77,7 @@ export default function AddCardScreen() {
           autoCapitalize="words"
         />
 
-        <Text style={styles.label}>Number</Text>
+        <Text style={styles.label}>Card Number</Text>
         <TextInput
           style={styles.input}
           placeholder="1234 5678 9012 3456"
@@ -92,16 +112,6 @@ export default function AddCardScreen() {
           </View>
         </View>
 
-        <Text style={styles.label}>Brand</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="VISA, MASTERCARD, AMEX..."
-          placeholderTextColor="#9aa"
-          value={form.brand}
-          onChangeText={(text) => handleChange('brand', text.toUpperCase())}
-          autoCapitalize="characters"
-        />
-
         <Text style={styles.label}>Design Variant</Text>
         <View style={styles.variantRow}>
           {VARIANT_OPTIONS.map((variant) => {
@@ -121,7 +131,7 @@ export default function AddCardScreen() {
         </View>
 
         <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
-          <Text style={styles.submitText}>Save Card</Text>
+          <Text style={styles.submitText}>Add Card</Text>
         </TouchableOpacity>
       </ScrollView>
     </>
@@ -129,21 +139,28 @@ export default function AddCardScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30
+  },
   container: {
-    marginTop: 90,
+    marginTop: 50,
     padding: 24,
     paddingBottom: 48,
-    gap: 16,
   },
   heading: {
-    fontSize: 24,
+    fontSize: 30,
     fontFamily: Fonts.rounded,
     color: '#fff',
+    marginRight: 90,
   },
   label: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
     letterSpacing: 0.5,
+    marginBottom: 5
   },
   input: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -154,6 +171,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.25)',
     fontSize: 16,
+    marginBottom: 15
   },
   row: {
     flexDirection: 'row',
@@ -186,7 +204,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   submit: {
-    marginTop: 12,
+    marginTop: 30,
     backgroundColor: '#4D7CFE',
     paddingVertical: 14,
     borderRadius: 14,
@@ -197,5 +215,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  backButtonPressed: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    transform: [{ scale: 0.96 }],
   },
 });
