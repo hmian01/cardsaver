@@ -31,7 +31,12 @@ export default function HomeScreen() {
           synced backups make checkout effortless.
         </Text>
         <View style={styles.heroActions}>
-          <TouchableOpacity style={styles.primaryCta} onPress={() => router.push('/card-editor')}>
+          <TouchableOpacity
+            style={styles.primaryCta}
+            onPress={() =>
+              router.push(`/card-editor?returnTo=${encodeURIComponent('/(tabs)')}`)
+            }
+          >
             <MaterialIcons name="add" size={18} color="#050710" />
             <Text style={styles.primaryCtaText}>Add new card</Text>
           </TouchableOpacity>

@@ -110,8 +110,10 @@ const buildFormFromCard = (card?: StoredCard): FormState => {
 
 export default function CardEditorScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ cardId?: string }>();
+  const params = useLocalSearchParams<{ cardId?: string; returnTo?: string }>();
   const cardId = typeof params.cardId === 'string' ? params.cardId : undefined;
+  const returnTo =
+    typeof params.returnTo === 'string' ? decodeURIComponent(params.returnTo) : undefined;
   const existingCard = cardId ? cardsStore.getCardById(cardId) : undefined;
   const isEditing = Boolean(cardId && existingCard);
 
@@ -161,7 +163,7 @@ export default function CardEditorScreen() {
 
   const handleBack = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.back();
+    router.replace(returnTo || '/(tabs)/cards');
   };
 
   const handleSubmit = async () => {

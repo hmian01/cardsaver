@@ -79,7 +79,7 @@ export default function CreditCard({
         <Text style={styles.number}>{formatNumber(number)}</Text>
       </Pressable>
 
-      <View style={styles.row}>
+      <View style={styles.bottomRow}>
         <View>
           <Text style={styles.label}>Card Holder</Text>
           <Text style={styles.value}>{cardholder.toUpperCase()}</Text>
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  row: {
+  bottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     borderRadius: 14,
     alignSelf: 'flex-start',
-    marginVertical: 12,
+    marginTop: -10,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.3)',
   },

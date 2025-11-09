@@ -75,8 +75,10 @@ export default function CardsScreen() {
     }
   };
 
-  const handleAddNew = () => router.push('/card-editor');
-  const handleEdit = (cardId: string) => router.push(`/card-editor?cardId=${cardId}`);
+  const cardsReturn = encodeURIComponent('/(tabs)/cards');
+  const handleAddNew = () => router.push(`/card-editor?returnTo=${cardsReturn}`);
+  const handleEdit = (cardId: string) =>
+    router.push(`/card-editor?cardId=${cardId}&returnTo=${cardsReturn}`);
 
   return (
     <View style={styles.screen}>
