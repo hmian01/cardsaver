@@ -7,9 +7,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import CreditCard from '@/components/creditcard';
 import Toast from '@/components/toast';
 import { Fonts } from '@/constants/theme';
+import { cardsStore, type StoredCard } from '@/store/cardsStore';
 
 export default function CardsScreen() {
   const [toastMessage, setToastMessage] = useState('');
+  const [cards, setCards] = useState<StoredCard[]>(() => cardsStore.getCards());
   const pendingReset = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerToast = (message: string) => {
@@ -24,7 +26,9 @@ export default function CardsScreen() {
   };
 
   useEffect(() => {
+    const unsubscribe = cardsStore.subscribe(setCards);
     return () => {
+      unsubscribe();
       if (pendingReset.current) {
         clearTimeout(pendingReset.current);
       }
@@ -34,49 +38,6 @@ export default function CardsScreen() {
   const handleCopy = () => {
     triggerToast(`Copied To Clipboard`);
   };
-
-  const cards = [
-    {
-      id: 'primary',
-      description: 'moms chase freedom',
-      cardholder: 'Alexis Taylor',
-      number: '4111111111114242',
-      expiry: '08/27',
-      cvv: '613',
-      brand: 'VISA',
-      variant: 'midnight' as const,
-    },
-    {
-      id: 'travel',
-      description: 'apple card',
-      cardholder: 'Alexis Taylor',
-      number: '5555444433331111',
-      expiry: '02/26',
-      cvv: '889',
-      brand: 'MASTERCARD',
-      variant: 'sunset' as const,
-    },
-    {
-      id: 'business',
-      description: 'sapphire',
-      cardholder: 'Alexis Taylor',
-      number: '379354082930004',
-      expiry: '11/25',
-      brand: 'AMEX',
-      cvv: '889',
-      variant: 'jade' as const,
-    },
-    {
-      id: 'other',
-      description: 'prime visa',
-      cardholder: 'Alexis Taylor',
-      number: '379354082930004',
-      expiry: '11/25',
-      brand: 'OTHER',
-      cvv: '889',
-      variant: 'jade' as const,
-    },
-  ];
 
   return (
     <View style={styles.screen}>
