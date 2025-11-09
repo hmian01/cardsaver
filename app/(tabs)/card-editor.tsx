@@ -163,7 +163,11 @@ export default function CardEditorScreen() {
 
   const handleBack = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.replace(returnTo || '/(tabs)/cards');
+    if (returnTo && typeof returnTo === 'string') {
+      router.replace(returnTo as unknown as any);
+    } else {
+      router.replace('/(tabs)/cards');
+    }
   };
 
   const handleSubmit = async () => {

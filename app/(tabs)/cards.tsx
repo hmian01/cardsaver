@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Haptics from 'expo-haptics';
 
 import CreditCard from '@/components/creditcard';
 import Toast from '@/components/toast';
@@ -67,7 +68,18 @@ export default function CardsScreen() {
     triggerToast(`Copied to clipboard`);
   };
 
-  const handleDelete = () => {
+  const handleDeleteModal = async (card: StoredCard) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCardPendingDelete(card);
+  }
+
+  const cancelDelete = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCardPendingDelete(null);
+  };
+
+  const handleDelete = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (cardPendingDelete) {
       cardsStore.removeCard(cardPendingDelete.id);
       triggerToast('Card deleted');
@@ -76,9 +88,15 @@ export default function CardsScreen() {
   };
 
   const cardsReturn = encodeURIComponent('/(tabs)/cards');
-  const handleAddNew = () => router.push(`/card-editor?returnTo=${cardsReturn}`);
-  const handleEdit = (cardId: string) =>
+
+  const handleAddNew = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push(`/card-editor?returnTo=${cardsReturn}`)
+  };
+  const handleEdit = async (cardId: string) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push(`/card-editor?cardId=${cardId}&returnTo=${cardsReturn}`);
+  };
 
   return (
     <View style={styles.screen}>
@@ -127,7 +145,7 @@ export default function CardsScreen() {
 
                   <TouchableOpacity
                     style={[styles.iconButton, styles.deleteButton]}
-                    onPress={() => setCardPendingDelete(card)}
+                    onPress={() => handleDeleteModal(card)}
                     accessibilityLabel={`Delete ${card.description}`}
                   >
                     <MaterialIcons name="delete" size={18} color="#fff" />
@@ -157,7 +175,7 @@ export default function CardsScreen() {
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setCardPendingDelete(null)}
+                onPress={cancelDelete}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>

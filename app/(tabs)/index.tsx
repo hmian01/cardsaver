@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Haptics from 'expo-haptics';
+
 
 import { Fonts } from '@/constants/theme';
 import { cardsStore, type StoredCard } from '@/store/cardsStore';
@@ -18,6 +20,16 @@ export default function HomeScreen() {
   const lastAdded = cards[cards.length - 1];
   const featuredCards = cards.slice(-2).reverse();
 
+  const addNew = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push(`/card-editor?returnTo=${encodeURIComponent('/(tabs)')}`);
+  };
+  
+  const viewCards = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/(tabs)/cards');
+  };
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <View style={styles.hero}>
@@ -33,16 +45,14 @@ export default function HomeScreen() {
         <View style={styles.heroActions}>
           <TouchableOpacity
             style={styles.primaryCta}
-            onPress={() =>
-              router.push(`/card-editor?returnTo=${encodeURIComponent('/(tabs)')}`)
-            }
+            onPress={addNew}
           >
             <MaterialIcons name="add" size={18} color="#050710" />
             <Text style={styles.primaryCtaText}>Add new card</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryCta}
-            onPress={() => router.push('/(tabs)/cards')}
+            onPress={viewCards}
           >
             <Text style={styles.secondaryCtaText}>View vault</Text>
           </TouchableOpacity>
