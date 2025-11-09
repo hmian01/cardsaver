@@ -122,19 +122,20 @@ export default function CardsScreen() {
               <View key={card.id} style={styles.cardWrapper}>
                 <CreditCard {...card} onCopy={handleCopy} />
                 <View style={styles.cardActions}>
-                  <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => handleEdit(card.id)}
-                    accessibilityLabel={`Edit ${card.description}`}
-                  >
-                    <MaterialIcons name="edit" size={18} color="#fff" />
-                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={[styles.iconButton, styles.deleteButton]}
                     onPress={() => setCardPendingDelete(card)}
                     accessibilityLabel={`Delete ${card.description}`}
                   >
                     <MaterialIcons name="delete" size={18} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => handleEdit(card.id)}
+                    accessibilityLabel={`Edit ${card.description}`}
+                  >
+                    <MaterialIcons name="edit" size={18} color="#fff" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -250,8 +251,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconButton: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',

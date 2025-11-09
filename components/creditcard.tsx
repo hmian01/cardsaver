@@ -68,7 +68,7 @@ export default function CreditCard({
       <View
         style={[styles.overlay, styles.overlaySecondary, { backgroundColor: palette.accentSecondary }]}
       />
-      <View style={styles.row}>
+      <View style={styles.cardHeaderRow}>
         <Text style={styles.description}>{description}</Text>
         <View style={styles.branding}>
           <Image source={brandLogo} style={styles.logoImage}  resizeMode="contain"/>
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 22,
     padding: 20,
-    marginVertical: 12,
+    marginVertical: 6,
     width: '100%',
     aspectRatio: 1.586,
     overflow: 'hidden',
@@ -114,6 +114,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowRadius: 18,
     elevation: 8,
+    paddingBottom: 30,
   },
   overlay: {
     position: 'absolute',
@@ -133,6 +134,11 @@ const styles = StyleSheet.create({
     right: -60,
     transform: [{ rotate: '18deg' }],
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -142,6 +148,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: '800',
+    marginTop: -30
   },
   chip: {
     width: 48,
@@ -154,6 +161,7 @@ const styles = StyleSheet.create({
   branding: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 30
   },
   logoImage: {
     width: 70,

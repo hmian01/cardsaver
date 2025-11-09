@@ -124,6 +124,12 @@ export default function CardEditorScreen() {
   }, [cardId, existingCard?.id]);
 
   useEffect(() => {
+    if (!cardId) {
+      setForm(DEFAULT_FORM);
+    }
+  }, [cardId]);
+
+  useEffect(() => {
     if (cardId && !existingCard) {
       Alert.alert('Card not found', 'The card you are trying to edit no longer exists.', [
         { text: 'OK', onPress: () => router.back() },
@@ -252,8 +258,10 @@ export default function CardEditorScreen() {
             <Text style={styles.previewValue}>
               {(form.cardholder || 'Your Name').toUpperCase()}
             </Text>
-            <Text style={styles.previewValue}>{form.expiry || 'MM/YY'}</Text>
-            <Text style={styles.previewValue}>{form.cvv || '***'}</Text>
+            <View style={styles.expCvvValues}>
+              <Text style={styles.previewValue}>{form.expiry || 'MM/YY'}</Text>
+              <Text style={styles.previewValue}>{form.cvv || '***'}</Text>
+            </View>
           </View>
         </View>
 
@@ -422,6 +430,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 4,
+  },
+  expCvvValues: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 90
   },
   previewLabel: {
     color: 'rgba(255,255,255,0.6)',
