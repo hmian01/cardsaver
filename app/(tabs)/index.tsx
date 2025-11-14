@@ -24,6 +24,11 @@ export default function HomeScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push(`/card-editor?returnTo=${encodeURIComponent('/(tabs)')}`);
   };
+
+  const openCamera = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/(tabs)/camera');
+  };
   
   const viewCards = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -86,6 +91,7 @@ export default function HomeScreen() {
             icon="photo-camera"
             title="Scan card"
             description="Autofill digits with the camera"
+            onPress={openCamera}
           />
           <QuickActionCard
             icon="shield"
@@ -148,17 +154,23 @@ type QuickActionProps = {
   icon: keyof typeof MaterialIcons.glyphMap;
   title: string;
   description: string;
+  onPress?: () => void;
 };
 
-function QuickActionCard({ icon, title, description }: QuickActionProps) {
+function QuickActionCard({ icon, title, description, onPress }: QuickActionProps) {
   return (
-    <View style={styles.quickCard}>
+    <TouchableOpacity
+      style={[styles.quickCard, !onPress && styles.quickCardDisabled]}
+      onPress={onPress}
+      disabled={!onPress}
+      activeOpacity={0.85}
+    >
       <View style={styles.quickIconWrapper}>
         <MaterialIcons name={icon} size={22} color="#C6D2FF" />
       </View>
       <Text style={styles.quickTitle}>{title}</Text>
       <Text style={styles.quickDescription}>{description}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -298,6 +310,9 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.08)',
+  },
+  quickCardDisabled: {
+    opacity: 0.65,
   },
   quickIconWrapper: {
     width: 42,

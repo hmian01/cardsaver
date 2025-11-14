@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  ImageSourcePropType,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,13 @@ import * as Haptics from 'expo-haptics';
 
 import { Fonts } from '@/constants/theme';
 import { cardsStore, type CardVariant, type StoredCard } from '@/store/cardsStore';
+import {
+  detectBrand,
+  formatCardNumber,
+  limitDigitsForBrand,
+  sanitizeCardNumber,
+  type CardBrand,
+} from '@/utils/cardNumber';
 
 const VARIANT_OPTIONS: CardVariant[] = ['midnight', 'sunset', 'jade'];
 
@@ -35,38 +43,12 @@ const DEFAULT_FORM: FormState = {
   cvv: '',
 };
 
-const BRAND_LOGOS = {
+const BRAND_LOGOS: Record<CardBrand, ImageSourcePropType> = {
   VISA: require('@/assets/images/visa-logo.png'),
   MASTERCARD: require('@/assets/images/mastercard-logo.png'),
   AMEX: require('@/assets/images/amex-logo.png'),
   DISCOVER: require('@/assets/images/other-logo.png'),
   OTHER: require('@/assets/images/other-logo.png'),
-} as const;
-
-const sanitizeNumber = (value: string) => value.replace(/\D/g, '');
-
-const detectBrand = (digits: string): keyof typeof BRAND_LOGOS => {
-  if (!digits) return 'OTHER';
-  const first = digits[0];
-  if (first === '3') return 'AMEX';
-  if (first === '4') return 'VISA';
-  if (first === '5') return 'MASTERCARD';
-  if (first === '6') return 'DISCOVER';
-  return 'OTHER';
-};
-
-const limitDigitsForBrand = (digits: string, brand: string) =>
-  brand === 'AMEX' ? digits.slice(0, 15) : digits.slice(0, 16);
-
-const formatCardNumber = (digits: string, isAmex: boolean) => {
-  if (!digits) return '';
-  if (isAmex) {
-    const part1 = digits.slice(0, 4);
-    const part2 = digits.slice(4, 10);
-    const part3 = digits.slice(10, 15);
-    return [part1, part2, part3].filter(Boolean).join(' ');
-  }
-  return digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
 };
 
 const formatExpiryInput = (value: string) => {
@@ -99,10 +81,11 @@ const getRandomVariant = () => VARIANT_OPTIONS[Math.floor(Math.random() * VARIAN
 
 const buildFormFromCard = (card?: StoredCard): FormState => {
   if (!card) return DEFAULT_FORM;
+  const normalizedBrand = (card.brand?.toUpperCase?.() as CardBrand) ?? 'OTHER';
   return {
     description: card.description,
     cardholder: card.cardholder,
-    number: formatCardNumber(card.number, card.brand.toUpperCase() === 'AMEX'),
+    number: formatCardNumber(card.number, normalizedBrand),
     expiry: card.expiry,
     cvv: card.cvv ?? '',
   };
@@ -110,23 +93,39 @@ const buildFormFromCard = (card?: StoredCard): FormState => {
 
 export default function CardEditorScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ cardId?: string; returnTo?: string }>();
+  const params = useLocalSearchParams<{ cardId?: string; returnTo?: string; prefillNumber?: string }>();
   const cardId = typeof params.cardId === 'string' ? params.cardId : undefined;
   const returnTo =
     typeof params.returnTo === 'string' ? decodeURIComponent(params.returnTo) : undefined;
   const existingCard = cardId ? cardsStore.getCardById(cardId) : undefined;
   const isEditing = Boolean(cardId && existingCard);
+  const prefillDigits =
+    typeof params.prefillNumber === 'string' ? sanitizeCardNumber(params.prefillNumber) : '';
 
-  const [form, setForm] = useState<FormState>(() => buildFormFromCard(existingCard));
+  const buildPrefilledForm = useCallback((): FormState => {
+    if (!prefillDigits) {
+      return DEFAULT_FORM;
+    }
+    const brandFromPrefill = detectBrand(prefillDigits);
+    const limited = limitDigitsForBrand(prefillDigits, brandFromPrefill);
+    return {
+      ...DEFAULT_FORM,
+      number: formatCardNumber(limited, brandFromPrefill),
+    };
+  }, [prefillDigits]);
+
+  const [form, setForm] = useState<FormState>(() =>
+    existingCard ? buildFormFromCard(existingCard) : buildPrefilledForm(),
+  );
 
   useFocusEffect(
     useCallback(() => {
       if (cardId && existingCard) {
         setForm(buildFormFromCard(existingCard));
       } else if (!cardId) {
-        setForm(DEFAULT_FORM);
+        setForm(buildPrefilledForm());
       }
-    }, [cardId, existingCard?.id]),
+    }, [buildPrefilledForm, cardId, existingCard]),
   );
 
   useEffect(() => {
@@ -138,17 +137,17 @@ export default function CardEditorScreen() {
   }, [cardId, existingCard, router]);
 
   const detectedBrand = useMemo(() => {
-    const digits = sanitizeNumber(form.number);
+    const digits = sanitizeCardNumber(form.number);
     return detectBrand(digits);
   }, [form.number]);
 
   const brandLogo = BRAND_LOGOS[detectedBrand];
 
   const handleNumberChange = (value: string) => {
-    const digits = sanitizeNumber(value);
+    const digits = sanitizeCardNumber(value);
     const brandGuess = detectBrand(digits);
     const limitedDigits = limitDigitsForBrand(digits, brandGuess);
-    const formatted = formatCardNumber(limitedDigits, brandGuess === 'AMEX');
+    const formatted = formatCardNumber(limitedDigits, brandGuess);
     setForm((prev) => ({ ...prev, number: formatted }));
   };
 
@@ -175,7 +174,7 @@ export default function CardEditorScreen() {
 
     const description = form.description.trim();
     const cardholder = form.cardholder.trim();
-    const digits = sanitizeNumber(form.number);
+    const digits = sanitizeCardNumber(form.number);
     const brand = detectBrand(digits);
     const normalizedExpiry = normalizeExpiry(form.expiry);
 

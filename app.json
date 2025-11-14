@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hm.cardsaver"
+      "bundleIdentifier": "com.hm.cardsaver",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow CardSaver to scan card numbers securely."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,6 +25,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
         "android.permission.USE_BIOMETRIC",
@@ -52,7 +56,8 @@
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
         }
-      ]
+      ],
+      ["expo-dev-client"]
     ],
     "experiments": {
       "typedRoutes": true,

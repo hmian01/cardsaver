@@ -1,3 +1,8 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useFocusEffect } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,11 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useFocusEffect } from '@react-navigation/native';
-import * as Haptics from 'expo-haptics';
-import * as LocalAuthentication from 'expo-local-authentication';
 
 import CreditCard from '@/components/creditcard';
 import Toast from '@/components/toast';
@@ -221,7 +221,7 @@ export default function CardsScreen() {
         <View style={styles.hero}>
           <View style={styles.heroTextBlock}>
             <Text style={styles.heroLabel}>Active Wallet</Text>
-            <Text style={styles.heroTitle}>You have {cards.length} saved cards</Text>
+            <Text style={styles.heroTitle}>You haves {cards.length} saved cards</Text>
             <Text style={styles.heroSubtitle}>Search, edit, or add new payment methods.</Text>
           </View>
           <TouchableOpacity style={styles.addButton} onPress={handleAddNew} hitSlop={20}>
