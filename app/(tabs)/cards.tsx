@@ -1,10 +1,12 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
+  AppStateStatus,
   ActivityIndicator,
   Modal,
   ScrollView,
@@ -19,6 +21,8 @@ import CreditCard from '@/components/creditcard';
 import Toast from '@/components/toast';
 import { Fonts } from '@/constants/theme';
 import { cardsStore, type StoredCard } from '@/store/cardsStore';
+
+const RELOCK_TIMEOUT_MS = 60_000;
 
 const sanitize = (value: string) => value.replace(/\s+/g, '').toLowerCase();
 
@@ -46,15 +50,18 @@ const getAuthErrorMessage = (error?: LocalAuthentication.LocalAuthenticationErro
 
 export default function CardsScreen() {
   const router = useRouter();
+  const isScreenFocused = useIsFocused();
   const [searchQuery, setSearchQuery] = useState('');
   const [cards, setCards] = useState<StoredCard[]>(() => cardsStore.getCards());
   const [toastMessage, setToastMessage] = useState('');
   const [cardPendingDelete, setCardPendingDelete] = useState<StoredCard | null>(null);
   const pendingToastReset = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(() => hasUnlockedVault);
+  const isVaultUnlockedRef = useRef(isVaultUnlocked);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authInFlight, setAuthInFlight] = useState(false);
   const [biometricsReady, setBiometricsReady] = useState(true);
+  const lastBlurTimeRef = useRef<number | null>(null);
 
   const triggerToast = (message: string) => {
     if (pendingToastReset.current) {
@@ -76,6 +83,10 @@ export default function CardsScreen() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    isVaultUnlockedRef.current = isVaultUnlocked;
+  }, [isVaultUnlocked]);
 
   const filteredCards = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -134,8 +145,20 @@ export default function CardsScreen() {
     setAuthInFlight(false);
   }
 
+  const lockVault = useCallback(() => {
+    if (!isVaultUnlockedRef.current && !hasUnlockedVault) {
+      return;
+    }
+    hasUnlockedVault = false;
+    isVaultUnlockedRef.current = false;
+    setIsVaultUnlocked(false);
+    setAuthError(null);
+    setBiometricsReady(true);
+    setAuthInFlight(false);
+  }, []);
+
   const attemptUnlock = useCallback(async () => {
-    if (isVaultUnlocked || authInFlight) {
+    if (isVaultUnlockedRef.current || authInFlight) {
       return;
     }
 
@@ -166,6 +189,7 @@ export default function CardsScreen() {
 
       if (result.success) {
         hasUnlockedVault = true;
+        isVaultUnlockedRef.current = true;
         setIsVaultUnlocked(true);
       } else {
         setAuthError(getAuthErrorMessage(result.error));
@@ -176,15 +200,38 @@ export default function CardsScreen() {
     } finally {
       cancelledUnlock();
     }
-  }, [authInFlight, isVaultUnlocked]);
+  }, [authInFlight]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!isVaultUnlocked) {
+      const now = Date.now();
+      const lastBlur = lastBlurTimeRef.current;
+      if (lastBlur && now - lastBlur >= RELOCK_TIMEOUT_MS) {
+        lockVault();
+      }
+      if (!isVaultUnlockedRef.current) {
         attemptUnlock();
       }
-    }, [attemptUnlock, isVaultUnlocked]),
+      return () => {
+        lastBlurTimeRef.current = Date.now();
+      };
+    }, [attemptUnlock, lockVault]),
   );
+
+  useEffect(() => {
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        lastBlurTimeRef.current = Date.now();
+        lockVault();
+      } else if (nextState === 'active' && isScreenFocused && !isVaultUnlockedRef.current) {
+        attemptUnlock();
+      }
+    };
+    const subscription = AppState.addEventListener('change', handleAppState);
+    return () => {
+      subscription.remove();
+    };
+  }, [attemptUnlock, isScreenFocused, lockVault]);
 
   if (!isVaultUnlocked) {
     return (
