@@ -202,7 +202,7 @@ export default function CameraTab() {
       `prefillNumber=${encodeURIComponent(detectedNumber)}`,
       `returnTo=${encodeURIComponent('/(tabs)/camera')}`,
     ].join('&');
-    router.push(`/card-editor?${query}`);
+    router.push(`/(tabs)/cards/card-editor?${query}`);
   }, [detectedNumber, router]);
 
   const stabilityPercent = useMemo(() => {

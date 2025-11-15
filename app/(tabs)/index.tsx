@@ -22,7 +22,7 @@ export default function HomeScreen() {
 
   const addNew = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(`/card-editor?returnTo=${encodeURIComponent('/(tabs)')}`);
+    router.push(`/(tabs)/cards/card-editor?returnTo=${encodeURIComponent('/(tabs)')}`);
   };
 
   const openCamera = async () => {

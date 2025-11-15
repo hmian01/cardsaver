@@ -131,11 +131,11 @@ export default function CardsScreen() {
 
   const handleAddNew = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(`/card-editor?returnTo=${cardsReturn}`)
+    router.push(`/(tabs)/cards/card-editor?returnTo=${cardsReturn}`);
   };
   const handleEdit = async (cardId: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(`/card-editor?cardId=${cardId}&returnTo=${cardsReturn}`);
+    router.push(`/(tabs)/cards/card-editor?cardId=${cardId}&returnTo=${cardsReturn}`);
   };
 
   const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
