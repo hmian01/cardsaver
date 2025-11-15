@@ -20,6 +20,7 @@ import CreditCard from '@/components/creditcard';
 import Toast from '@/components/toast';
 import { Fonts } from '@/constants/theme';
 import { cardsStore, type StoredCard } from '@/store/cardsStore';
+import { settingsStore } from '@/store/settingsStore';
 
 const RELOCK_TIMEOUT_MS = 60_000;
 
@@ -60,6 +61,9 @@ export default function CardsScreen() {
   const [authInFlight, setAuthInFlight] = useState(false);
   const [biometricsReady, setBiometricsReady] = useState(true);
   const lastBlurTimeRef = useRef<number | null>(null);
+  const [biometricLockEnabled, setBiometricLockEnabled] = useState(
+    () => settingsStore.getSettings().biometricLockEnabled,
+  );
 
   const triggerToast = (message: string) => {
     if (pendingToastReset.current) {
@@ -74,8 +78,12 @@ export default function CardsScreen() {
 
   useEffect(() => {
     const unsubscribe = cardsStore.subscribe(setCards);
+    const unsubscribeSettings = settingsStore.subscribe((next) => {
+      setBiometricLockEnabled(next.biometricLockEnabled);
+    });
     return () => {
       unsubscribe();
+      unsubscribeSettings();
       if (pendingToastReset.current) {
         clearTimeout(pendingToastReset.current);
       }
@@ -85,6 +93,20 @@ export default function CardsScreen() {
   useEffect(() => {
     isVaultUnlockedRef.current = isVaultUnlocked;
   }, [isVaultUnlocked]);
+
+  useEffect(() => {
+    if (!biometricLockEnabled) {
+      hasUnlockedVault = true;
+      isVaultUnlockedRef.current = true;
+      setIsVaultUnlocked(true);
+      setAuthError(null);
+      setAuthInFlight(false);
+    } else {
+      hasUnlockedVault = false;
+      isVaultUnlockedRef.current = false;
+      setIsVaultUnlocked(false);
+    }
+  }, [biometricLockEnabled]);
 
   const filteredCards = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -125,6 +147,9 @@ export default function CardsScreen() {
   }
 
   const lockVault = useCallback(() => {
+    if (!biometricLockEnabled) {
+      return;
+    }
     if (!isVaultUnlockedRef.current && !hasUnlockedVault) {
       return;
     }
@@ -134,10 +159,10 @@ export default function CardsScreen() {
     setAuthError(null);
     setBiometricsReady(true);
     setAuthInFlight(false);
-  }, []);
+  }, [biometricLockEnabled]);
 
   const attemptUnlock = useCallback(async () => {
-    if (isVaultUnlockedRef.current || authInFlight) {
+    if (!biometricLockEnabled || isVaultUnlockedRef.current || authInFlight) {
       return;
     }
 
@@ -179,10 +204,15 @@ export default function CardsScreen() {
     } finally {
       cancelledUnlock();
     }
-  }, [authInFlight]);
+  }, [authInFlight, biometricLockEnabled]);
 
   useFocusEffect(
     useCallback(() => {
+      if (!biometricLockEnabled) {
+        return () => {
+          lastBlurTimeRef.current = null;
+        };
+      }
       const now = Date.now();
       const lastBlur = lastBlurTimeRef.current;
       if (lastBlur && now - lastBlur >= RELOCK_TIMEOUT_MS) {
@@ -194,10 +224,13 @@ export default function CardsScreen() {
       return () => {
         lastBlurTimeRef.current = Date.now();
       };
-    }, [attemptUnlock, lockVault]),
+    }, [attemptUnlock, biometricLockEnabled, lockVault]),
   );
 
   useEffect(() => {
+    if (!biometricLockEnabled) {
+      return;
+    }
     const handleAppState = (nextState: AppStateStatus) => {
       if (nextState === 'background' || nextState === 'inactive') {
         lastBlurTimeRef.current = Date.now();
@@ -210,9 +243,9 @@ export default function CardsScreen() {
     return () => {
       subscription.remove();
     };
-  }, [attemptUnlock, isScreenFocused, lockVault]);
+  }, [attemptUnlock, biometricLockEnabled, isScreenFocused, lockVault]);
 
-  if (!isVaultUnlocked) {
+  if (biometricLockEnabled && !isVaultUnlocked) {
     return (
       <View style={styles.lockScreen}>
         <View style={styles.lockIconWrapper}>

@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Fonts } from '@/constants/theme';
 import { settingsStore } from '@/store/settingsStore';
@@ -10,11 +10,13 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState(() => settingsStore.getSettings());
   const [defaultNameInput, setDefaultNameInput] = useState(settings.defaultCardholder);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [biometricEnabled, setBiometricEnabled] = useState(settings.biometricLockEnabled);
 
   useEffect(() => {
     const unsubscribe = settingsStore.subscribe((next) => {
       setSettings(next);
       setDefaultNameInput(next.defaultCardholder);
+      setBiometricEnabled(next.biometricLockEnabled);
     });
     return unsubscribe;
   }, []);
@@ -37,19 +39,44 @@ export default function SettingsScreen() {
     setLastSavedAt(Date.now());
   };
 
+  const handleToggleBiometrics = async (value: boolean) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setBiometricEnabled(value);
+    settingsStore.setBiometricLockEnabled(value);
+  };
+
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.hero}>
           <View style={styles.heroTextBlock}>
-            <Text style={styles.heroLabel}>Control Center</Text>
-            <Text style={styles.heroTitle}>Tailor how CardSaver behaves</Text>
-            <Text style={styles.heroSubtitle}>
-              Personalize new cards and review the security posture of your vault.
-            </Text>
+            <Text style={styles.heroTitle}>CardSaver Settings</Text>
           </View>
           <View style={styles.heroIcon}>
             <MaterialIcons name="settings" size={34} color="#050710" />
+          </View>
+        </View>
+
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Vault Access</Text>
+          </View>
+          <Text style={styles.sectionTitle}>Face ID lock</Text>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <Text style={styles.toggleTitle}>
+                {biometricEnabled ? 'Enabled' : 'Disabled'}
+              </Text>
+              <Text style={styles.toggleSubtitle}>
+                Protect the cards tab with Face ID when this is on.
+              </Text>
+            </View>
+            <Switch
+              value={biometricEnabled}
+              onValueChange={handleToggleBiometrics}
+              thumbColor={biometricEnabled ? '#A5F276' : '#727682'}
+              trackColor={{ false: 'rgba(255,255,255,0.2)', true: 'rgba(165,242,118,0.4)' }}
+            />
           </View>
         </View>
 
@@ -59,10 +86,6 @@ export default function SettingsScreen() {
             {lastSavedAt && <Text style={styles.sectionStatus}>Saved</Text>}
           </View>
           <Text style={styles.sectionTitle}>Default cardholder name</Text>
-          <Text style={styles.sectionSubtitle}>
-            We prefill new cards — including ones created from the camera scanner — with this name so
-            you can log cards faster. You can still edit each card individually.
-          </Text>
           <TextInput
             value={defaultNameInput}
             onChangeText={setDefaultNameInput}
@@ -158,10 +181,6 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontFamily: Fonts.rounded,
   },
-  heroSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-  },
   heroIcon: {
     width: 60,
     height: 60,
@@ -199,8 +218,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: Fonts.rounded,
   },
-  sectionSubtitle: {
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16,
+  },
+  toggleText: {
+    flex: 1,
+    gap: 4,
+  },
+  toggleTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  toggleSubtitle: {
     color: 'rgba(255,255,255,0.65)',
+    fontSize: 13,
   },
   input: {
     backgroundColor: '#080C1B',
@@ -209,7 +244,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     color: '#fff',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.29)',
     fontSize: 16,
   },
   primaryButton: {
