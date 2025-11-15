@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type SettingsState = {
   defaultCardholder: string;
+  biometricLockEnabled: boolean;
 };
 
 type SettingsListener = (settings: SettingsState) => void;
@@ -9,6 +10,7 @@ type SettingsListener = (settings: SettingsState) => void;
 const STORAGE_KEY = '@cardsaver/settings';
 const DEFAULT_SETTINGS: SettingsState = {
   defaultCardholder: '',
+  biometricLockEnabled: true,
 };
 
 let settings: SettingsState = { ...DEFAULT_SETTINGS };
@@ -45,9 +47,14 @@ const hydrateSettings = async () => {
         return;
       }
       const parsed = JSON.parse(stored);
-      if (parsed && typeof parsed === 'object' && typeof parsed.defaultCardholder === 'string') {
+      if (parsed && typeof parsed === 'object') {
         setSettings({
-          defaultCardholder: parsed.defaultCardholder,
+          defaultCardholder:
+            typeof parsed.defaultCardholder === 'string' ? parsed.defaultCardholder : '',
+          biometricLockEnabled:
+            typeof parsed.biometricLockEnabled === 'boolean'
+              ? parsed.biometricLockEnabled
+              : DEFAULT_SETTINGS.biometricLockEnabled,
         });
         return;
       }
@@ -72,6 +79,12 @@ export const settingsStore = {
     persistSettings({
       ...settings,
       defaultCardholder: value.trim(),
+    });
+  },
+  setBiometricLockEnabled: (enabled: boolean) => {
+    persistSettings({
+      ...settings,
+      biometricLockEnabled: enabled,
     });
   },
 };
