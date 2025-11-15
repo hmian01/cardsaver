@@ -7,6 +7,7 @@ import {
   Image,
   ImageSourcePropType,
   Keyboard,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -107,6 +108,7 @@ export default function CardEditorScreen() {
   const returnTo =
     typeof params.returnTo === 'string' ? decodeURIComponent(params.returnTo) : undefined;
   const existingCard = cardId ? cardsStore.getCardById(cardId) : undefined;
+  const existingCardId = existingCard?.id;
   const isEditing = Boolean(cardId && existingCard);
   const prefillDigits =
     typeof params.prefillNumber === 'string' ? sanitizeCardNumber(params.prefillNumber) : '';
@@ -146,6 +148,7 @@ export default function CardEditorScreen() {
     existingCard ? buildFormFromCard(existingCard) : buildPrefilledForm(),
   );
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -172,6 +175,26 @@ export default function CardEditorScreen() {
       hideSub.remove();
     };
   }, []);
+
+  const openDeleteModal = useCallback(async () => {
+    if (!isEditing) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsDeleteModalVisible(true);
+  }, [isEditing]);
+
+  const closeDeleteModal = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsDeleteModalVisible(false);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    const targetId = existingCardId ?? cardId;
+    if (!targetId) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    cardsStore.removeCard(targetId);
+    setIsDeleteModalVisible(false);
+    router.replace('/(tabs)/cards');
+  }, [cardId, existingCardId, router]);
 
   const detectedBrand = useMemo(() => {
     const digits = sanitizeCardNumber(form.number);
@@ -273,21 +296,31 @@ export default function CardEditorScreen() {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={isKeyboardVisible ? styles.makelonger : undefined}>
-          <View style={styles.headerRow}>
-            <Pressable
-              style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
-              onPress={handleBack}
-              hitSlop={30}
-            >
-              <MaterialIcons size={22} color="#fff" name="arrow-back" />
-            </Pressable>
-            <View style={styles.headerText}>
-              <Text style={styles.heading}>{isEditing ? 'Edit card' : 'Add new card'}</Text>
-              <Text style={styles.subheading}>
-                {isEditing ? 'Update details securely' : 'Store a payment method securely'}
-              </Text>
-            </View>
+        <View style={styles.headerRow}>
+          <Pressable
+            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+            onPress={handleBack}
+            hitSlop={30}
+          >
+            <MaterialIcons size={22} color="#fff" name="arrow-back" />
+          </Pressable>
+          <View style={styles.headerText}>
+            <Text style={styles.heading}>{isEditing ? 'Edit card' : 'Add new card'}</Text>
+            <Text style={styles.subheading}>
+              {isEditing ? 'Update details securely' : 'Store a payment method securely'}
+            </Text>
           </View>
+          {isEditing && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={openDeleteModal}
+              accessibilityLabel="Delete this card"
+              hitSlop={20}
+            >
+              <MaterialIcons name="delete" size={22} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
 
           <View style={styles.cardPreview}>
             <View style={styles.previewTopRow}>
@@ -377,6 +410,31 @@ export default function CardEditorScreen() {
           </View>
         </View>
       </ScrollView>
+      <Modal visible={isDeleteModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <MaterialIcons name="warning" size={32} color="#FF6B6B" />
+            <Text style={styles.modalTitle}>Delete this card?</Text>
+            <Text style={styles.modalSubtitle}>
+              This removes "{form.description || 'this card'}" from your vault permanently.
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={closeDeleteModal}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={confirmDelete}
+              >
+                <Text style={styles.confirmText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -426,6 +484,18 @@ const styles = StyleSheet.create({
   backButtonPressed: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     transform: [{ scale: 0.95 }],
+  },
+  deleteButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,0,0,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.4)',
+    marginRight: 10,
+    marginBottom: 10
   },
   brandBadge: {
     flexDirection: 'row',
@@ -555,6 +625,58 @@ const styles = StyleSheet.create({
   submitText: {
     color: '#050710',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(5,7,16,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: '#0F1324',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  modalSubtitle: {
+    color: 'rgba(255,255,255,0.65)',
+    textAlign: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 10,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  confirmButton: {
+    backgroundColor: '#FF6B6B',
+  },
+  cancelText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  confirmText: {
+    color: '#050710',
     fontWeight: '700',
   },
 });
