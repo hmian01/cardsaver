@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -120,21 +120,20 @@ export default function CardEditorScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (cardId && existingCard) {
-        setForm(buildFormFromCard(existingCard));
-      } else if (!cardId) {
+      if (cardId) {
+        const latestCard = cardsStore.getCardById(cardId);
+        if (latestCard) {
+          setForm(buildFormFromCard(latestCard));
+        } else {
+          Alert.alert('Card not found', 'The card you are trying to edit no longer exists.', [
+            { text: 'OK', onPress: () => router.back() },
+          ]);
+        }
+      } else {
         setForm(buildPrefilledForm());
       }
-    }, [buildPrefilledForm, cardId, existingCard]),
+    }, [buildPrefilledForm, cardId, router]),
   );
-
-  useEffect(() => {
-    if (cardId && !existingCard) {
-      Alert.alert('Card not found', 'The card you are trying to edit no longer exists.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    }
-  }, [cardId, existingCard, router]);
 
   const detectedBrand = useMemo(() => {
     const digits = sanitizeCardNumber(form.number);

@@ -1,7 +1,7 @@
-import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
+import React from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Fonts } from '@/constants/theme';
 
@@ -38,6 +38,7 @@ const BRAND_LOGOS = {
   VISA: require('@/assets/images/visa-logo.png'),
   MASTERCARD: require('@/assets/images/mastercard-logo.png'),
   AMEX: require('@/assets/images/amex-logo.png'),
+  DISCOVER: require('@/assets/images/discover-logo.png'),
   OTHER: require('@/assets/images/other-logo.png'),
 } as const;
 

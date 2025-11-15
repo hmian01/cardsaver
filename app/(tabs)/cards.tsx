@@ -221,7 +221,7 @@ export default function CardsScreen() {
         <View style={styles.hero}>
           <View style={styles.heroTextBlock}>
             <Text style={styles.heroLabel}>Active Wallet</Text>
-            <Text style={styles.heroTitle}>You haves {cards.length} saved cards</Text>
+            <Text style={styles.heroTitle}>You have {cards.length} saved cards</Text>
             <Text style={styles.heroSubtitle}>Search, edit, or add new payment methods.</Text>
           </View>
           <TouchableOpacity style={styles.addButton} onPress={handleAddNew} hitSlop={20}>
