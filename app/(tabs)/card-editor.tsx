@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 
 import { Fonts } from '@/constants/theme';
 import { cardsStore, type CardVariant, type StoredCard } from '@/store/cardsStore';
+import { settingsStore } from '@/store/settingsStore';
 import {
   detectBrand,
   formatCardNumber,
@@ -77,7 +78,14 @@ const normalizeExpiry = (value: string): string | null => {
 
 const isValidCvv = (value: string) => value.length === 3 || value.length === 4;
 
-const getRandomVariant = () => VARIANT_OPTIONS[Math.floor(Math.random() * VARIANT_OPTIONS.length)];
+let lastVariant: CardVariant | null = null;
+const getRandomVariant = () => {
+  const pool = lastVariant ? VARIANT_OPTIONS.filter((variant) => variant !== lastVariant) : VARIANT_OPTIONS;
+  const options = pool.length > 0 ? pool : VARIANT_OPTIONS;
+  const variant = options[Math.floor(Math.random() * options.length)];
+  lastVariant = variant;
+  return variant;
+};
 
 const buildFormFromCard = (card?: StoredCard): FormState => {
   if (!card) return DEFAULT_FORM;
@@ -102,17 +110,36 @@ export default function CardEditorScreen() {
   const prefillDigits =
     typeof params.prefillNumber === 'string' ? sanitizeCardNumber(params.prefillNumber) : '';
 
+  const [defaultCardholder, setDefaultCardholder] = useState(
+    () => settingsStore.getSettings().defaultCardholder,
+  );
+
+  useEffect(() => {
+    const unsubscribe = settingsStore.subscribe((next) => {
+      setDefaultCardholder(next.defaultCardholder);
+    });
+    return unsubscribe;
+  }, []);
+
+  const buildEmptyForm = useCallback((): FormState => {
+    return {
+      ...DEFAULT_FORM,
+      cardholder: defaultCardholder || '',
+    };
+  }, [defaultCardholder]);
+
   const buildPrefilledForm = useCallback((): FormState => {
+    const base = buildEmptyForm();
     if (!prefillDigits) {
-      return DEFAULT_FORM;
+      return base;
     }
     const brandFromPrefill = detectBrand(prefillDigits);
     const limited = limitDigitsForBrand(prefillDigits, brandFromPrefill);
     return {
-      ...DEFAULT_FORM,
+      ...base,
       number: formatCardNumber(limited, brandFromPrefill),
     };
-  }, [prefillDigits]);
+  }, [buildEmptyForm, prefillDigits]);
 
   const [form, setForm] = useState<FormState>(() =>
     existingCard ? buildFormFromCard(existingCard) : buildPrefilledForm(),
