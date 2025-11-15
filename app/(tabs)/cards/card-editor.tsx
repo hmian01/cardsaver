@@ -203,7 +203,7 @@ export default function CardEditorScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cardsStore.removeCard(targetId);
     setIsDeleteModalVisible(false);
-    router.replace('/(tabs)/cards');
+    router.back();
   }, [cardId, existingCardId, router]);
 
   const detectedBrand = useMemo(() => {
@@ -237,10 +237,10 @@ export default function CardEditorScreen() {
       return;
     }
     if (returnTo && typeof returnTo === 'string') {
-      router.replace(returnTo as unknown as any);
+      router.back();
       return;
     }
-    router.replace('/(tabs)/cards');
+    router.back();
   };
 
   const handleSubmit = async () => {
@@ -299,7 +299,7 @@ export default function CardEditorScreen() {
       });
     }
 
-    router.replace('/(tabs)/cards');
+    router.back();
   };
 
   return (
