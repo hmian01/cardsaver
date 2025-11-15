@@ -6,6 +6,7 @@ import {
   Alert,
   Image,
   ImageSourcePropType,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -144,6 +145,7 @@ export default function CardEditorScreen() {
   const [form, setForm] = useState<FormState>(() =>
     existingCard ? buildFormFromCard(existingCard) : buildPrefilledForm(),
   );
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -161,6 +163,15 @@ export default function CardEditorScreen() {
       }
     }, [buildPrefilledForm, cardId, router]),
   );
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const detectedBrand = useMemo(() => {
     const digits = sanitizeCardNumber(form.number);
@@ -257,107 +268,109 @@ export default function CardEditorScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerRow}>
-          <Pressable
-            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
-            onPress={handleBack}
-            hitSlop={30}
-          >
-            <MaterialIcons size={22} color="#fff" name="arrow-back" />
-          </Pressable>
-          <View style={styles.headerText}>
-            <Text style={styles.heading}>{isEditing ? 'Edit card' : 'Add new card'}</Text>
-            <Text style={styles.subheading}>
-              {isEditing ? 'Update details securely' : 'Store a payment method securely'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.cardPreview}>
-          <View style={styles.previewTopRow}>
-            <Text style={styles.previewTitle} numberOfLines={1} ellipsizeMode="tail">
-              {form.description || 'Card nickname'}
-            </Text>
-            <Image source={brandLogo} style={styles.logoImage} resizeMode="contain" />
-          </View>
-          <Text style={styles.previewNumber}>{form.number || '•••• •••• •••• ••••'}</Text>
-          <View style={styles.previewRowLabels}>
-              <Text style={styles.previewLabel}>Cardholder</Text>
-              <Text style={[styles.previewLabel, styles.expirylabel]}>Expires</Text>
-              <Text style={styles.previewLabel}>CVV</Text>
-          </View>
-          <View style={styles.previewRowValues}>
-            <Text style={[styles.previewValue, styles.previewCardholder]} numberOfLines={1} ellipsizeMode="tail">
-              {(form.cardholder || 'Your Name').toUpperCase()}
-            </Text>
-            <View style={styles.expCvvValues}>
-              <Text style={styles.previewValue}>{form.expiry || 'MM/YY'}</Text>
-              <Text style={styles.previewValue}>{form.cvv || '***'}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.formCard}>
-          <Text style={styles.formLabel}>Nickname</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Travel Visa"
-            placeholderTextColor="#8C93AD"
-            value={form.description}
-            onChangeText={(text) => setForm((prev) => ({ ...prev, description: text }))}
-          />
-
-          <Text style={styles.formLabel}>Name on card</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Alexis Taylor"
-            placeholderTextColor="#8C93AD"
-            value={form.cardholder}
-            onChangeText={(text) => setForm((prev) => ({ ...prev, cardholder: text }))}
-            autoCapitalize="words"
-          />
-
-          <Text style={styles.formLabel}>Card number</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="1234 5678 9012 3456"
-            placeholderTextColor="#8C93AD"
-            keyboardType="number-pad"
-            value={form.number}
-            onChangeText={handleNumberChange}
-            maxLength={detectedBrand === 'AMEX' ? 17 : 19}
-          />
-
-          <View style={styles.row}>
-            <View style={styles.col}>
-              <Text style={styles.formLabel}>Expiry</Text>
-              <TextInput
-                style={[styles.input, styles.ExpCvvInput]}
-                placeholder="MM/YY"
-                placeholderTextColor="#8C93AD"
-                keyboardType="number-pad"
-                value={form.expiry}
-                onChangeText={handleExpiryChange}
-                maxLength={7}
-              />
-            </View>
-            <View style={styles.col}>
-              <Text style={styles.formLabel}>CVV</Text>
-              <TextInput
-                style={[styles.input, styles.ExpCvvInput]}
-                placeholder="123"
-                placeholderTextColor="#8C93AD"
-                keyboardType="number-pad"
-                value={form.cvv}
-                onChangeText={handleCvvChange}
-                maxLength={4}
-              />
+        <View style={isKeyboardVisible ? styles.makelonger : undefined}>
+          <View style={styles.headerRow}>
+            <Pressable
+              style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+              onPress={handleBack}
+              hitSlop={30}
+            >
+              <MaterialIcons size={22} color="#fff" name="arrow-back" />
+            </Pressable>
+            <View style={styles.headerText}>
+              <Text style={styles.heading}>{isEditing ? 'Edit card' : 'Add new card'}</Text>
+              <Text style={styles.subheading}>
+                {isEditing ? 'Update details securely' : 'Store a payment method securely'}
+              </Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
-            <Text style={styles.submitText}>{isEditing ? 'Save changes' : 'Save card'}</Text>
-          </TouchableOpacity>
+          <View style={styles.cardPreview}>
+            <View style={styles.previewTopRow}>
+              <Text style={styles.previewTitle} numberOfLines={1} ellipsizeMode="tail">
+                {form.description || 'Card nickname'}
+              </Text>
+              <Image source={brandLogo} style={styles.logoImage} resizeMode="contain" />
+            </View>
+            <Text style={styles.previewNumber}>{form.number || '•••• •••• •••• ••••'}</Text>
+            <View style={styles.previewRowLabels}>
+                <Text style={styles.previewLabel}>Cardholder</Text>
+                <Text style={[styles.previewLabel, styles.expirylabel]}>Expires</Text>
+                <Text style={styles.previewLabel}>CVV</Text>
+            </View>
+            <View style={styles.previewRowValues}>
+              <Text style={[styles.previewValue, styles.previewCardholder]} numberOfLines={1} ellipsizeMode="tail">
+                {(form.cardholder || 'Your Name').toUpperCase()}
+              </Text>
+              <View style={styles.expCvvValues}>
+                <Text style={styles.previewValue}>{form.expiry || 'MM/YY'}</Text>
+                <Text style={styles.previewValue}>{form.cvv || '***'}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.formCard}>
+            <Text style={styles.formLabel}>Nickname</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Travel Visa"
+              placeholderTextColor="#8C93AD"
+              value={form.description}
+              onChangeText={(text) => setForm((prev) => ({ ...prev, description: text }))}
+            />
+
+            <Text style={styles.formLabel}>Name on card</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Alexis Taylor"
+              placeholderTextColor="#8C93AD"
+              value={form.cardholder}
+              onChangeText={(text) => setForm((prev) => ({ ...prev, cardholder: text }))}
+              autoCapitalize="words"
+            />
+
+            <Text style={styles.formLabel}>Card number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="1234 5678 9012 3456"
+              placeholderTextColor="#8C93AD"
+              keyboardType="number-pad"
+              value={form.number}
+              onChangeText={handleNumberChange}
+              maxLength={detectedBrand === 'AMEX' ? 17 : 19}
+            />
+
+            <View style={styles.row}>
+              <View style={styles.col}>
+                <Text style={styles.formLabel}>Expiry</Text>
+                <TextInput
+                  style={[styles.input, styles.ExpCvvInput]}
+                  placeholder="MM/YY"
+                  placeholderTextColor="#8C93AD"
+                  keyboardType="number-pad"
+                  value={form.expiry}
+                  onChangeText={handleExpiryChange}
+                  maxLength={7}
+                />
+              </View>
+              <View style={styles.col}>
+                <Text style={styles.formLabel}>CVV</Text>
+                <TextInput
+                  style={[styles.input, styles.ExpCvvInput]}
+                  placeholder="123"
+                  placeholderTextColor="#8C93AD"
+                  keyboardType="number-pad"
+                  value={form.cvv}
+                  onChangeText={handleCvvChange}
+                  maxLength={4}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
+              <Text style={styles.submitText}>{isEditing ? 'Save changes' : 'Save card'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -369,6 +382,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#050710',
     marginTop: 50,
+  },
+  makelonger: {
+    marginBottom: 100
   },
   container: {
     padding: 24,
