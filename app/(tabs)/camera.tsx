@@ -1,9 +1,9 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useIsFocused } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { NativeModulesProxy } from 'expo-modules-core';
-import type { TextRecognitionResult } from 'expo-mlkit-ocr';
 import * as Haptics from 'expo-haptics';
+import type { TextRecognitionResult } from 'expo-mlkit-ocr';
+import { NativeModulesProxy } from 'expo-modules-core';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -25,7 +25,7 @@ import {
   type CardBrand,
 } from '@/utils/cardNumber';
 
-const FRAME_HEIGHT = 320;
+const FRAME_HEIGHT = 280;
 const SCAN_INTERVAL = 1800;
 const MIN_STABLE_MATCHES = 2;
 
@@ -378,7 +378,7 @@ const extractCardDigits = (result: TextRecognitionResult | null) => {
   if (!result) {
     return null;
   }
-
+  console.log(result); // will delete later
   const segments = collectSegments(result);
   for (const segment of segments) {
     const candidate = findDigitsInText(segment);
