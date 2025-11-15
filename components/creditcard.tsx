@@ -83,7 +83,9 @@ export default function CreditCard({
         style={[styles.overlay, styles.overlaySecondary, { backgroundColor: palette.accentSecondary }]}
       />
       <View style={styles.cardHeaderRow}>
-        <Text style={styles.description}>{description}</Text>
+        <Text style={styles.description} numberOfLines={1} ellipsizeMode="clip">
+          {description}
+        </Text>
         <View style={styles.branding}>
           <Image source={brandLogo} style={styles.logoImage}  resizeMode="contain"/>
         </View>
@@ -94,28 +96,34 @@ export default function CreditCard({
       </Pressable>
 
       <View style={styles.bottomRow}>
-        <View>
+        <View style={styles.cardHolderName}>
           <Text style={styles.label}>Card Holder</Text>
-          <Text style={styles.value}>{cardholder.toUpperCase()}</Text>
+          <Text style={styles.value} numberOfLines={1} ellipsizeMode="clip">
+            {cardholder.toUpperCase()}
+          </Text>
         </View>
-        <View>
+        <View style={[styles.infoColumn]}>
           <Text style={styles.label}>Expires</Text>
           <Pressable
             onPress={handleCopyExpiry}
             style={[styles.copyPill, styles.copyValuePill]}
             hitSlop={20}
           >
-            <Text style={styles.value}>{expiry}</Text>
+            <Text style={styles.value} numberOfLines={1} ellipsizeMode="clip">
+              {expiry}
+            </Text>
           </Pressable>
         </View>
-        <View>
+        <View style={styles.infoColumn}>
           <Text style={styles.label}>CVV</Text>
           <Pressable
             onPress={handleCopyCvv}
             style={[styles.copyPill, styles.copyValuePill]}
             hitSlop={20}
           >
-            <Text style={styles.value}>{cvv}</Text>
+            <Text style={styles.value} numberOfLines={1} ellipsizeMode="tail">
+              {cvv}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -164,17 +172,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
   },
   bottomRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 30,
     alignItems: 'center',
+
+  },
+  cardHolderName: {
+    alignItems: 'flex-start',
+    width: 150
+  },
+  infoColumn: {
+    alignItems: 'flex-start',
+    width: 60
   },
   description: {
     color: '#fff',
     fontSize: 20,
     fontWeight: '800',
-    marginTop: -30
+    marginTop: -30,
+    flex: 1,
   },
   chip: {
     width: 48,

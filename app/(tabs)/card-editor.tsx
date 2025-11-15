@@ -1,3 +1,6 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Haptics from 'expo-haptics';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -11,9 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import * as Haptics from 'expo-haptics';
 
 import { Fonts } from '@/constants/theme';
 import { cardsStore, type CardVariant, type StoredCard } from '@/store/cardsStore';
@@ -275,17 +275,19 @@ export default function CardEditorScreen() {
 
         <View style={styles.cardPreview}>
           <View style={styles.previewTopRow}>
-            <Text style={styles.previewTitle}>{form.description || 'Card nickname'}</Text>
+            <Text style={styles.previewTitle} numberOfLines={1} ellipsizeMode="tail">
+              {form.description || 'Card nickname'}
+            </Text>
             <Image source={brandLogo} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.previewNumber}>{form.number || '•••• •••• •••• ••••'}</Text>
           <View style={styles.previewRowLabels}>
-            <Text style={styles.previewLabel}>Cardholder</Text>
-            <Text style={styles.previewLabel}>Expires</Text>
-            <Text style={styles.previewLabel}>CVV</Text>
+              <Text style={styles.previewLabel}>Cardholder</Text>
+              <Text style={[styles.previewLabel, styles.expirylabel]}>Expires</Text>
+              <Text style={styles.previewLabel}>CVV</Text>
           </View>
           <View style={styles.previewRowValues}>
-            <Text style={styles.previewValue}>
+            <Text style={[styles.previewValue, styles.previewCardholder]} numberOfLines={1} ellipsizeMode="tail">
               {(form.cardholder || 'Your Name').toUpperCase()}
             </Text>
             <View style={styles.expCvvValues}>
@@ -440,6 +442,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+    width: 230
   },
   logoImage: {
     width: 64,
@@ -462,10 +465,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 4,
   },
+  expCvvLabels: {
+
+  },
   expCvvValues: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 90
+    gap: 50,
+    marginLeft: 30
+  },
+  expirylabel: {
+    marginLeft: 70
   },
   previewLabel: {
     color: 'rgba(255,255,255,0.6)',
@@ -475,6 +485,9 @@ const styles = StyleSheet.create({
   previewValue: {
     color: '#fff',
     fontWeight: '600',
+  },
+  previewCardholder: {
+    width: 150
   },
   formCard: {
     backgroundColor: '#0F1324',
