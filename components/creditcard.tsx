@@ -57,10 +57,23 @@ export default function CreditCard({
   const palette = CARD_VARIANTS[variant];
   const brandLogo = BRAND_LOGOS[brand as keyof typeof BRAND_LOGOS];
 
-  const copyToClipboard = async () => {
-    await Clipboard.setStringAsync(number);
+  const copyValue = async (value?: string) => {
+    if (!value) return;
+    await Clipboard.setStringAsync(value);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onCopy?.();
+  };
+
+  const handleCopyNumber = () => {
+    void copyValue(number);
+  };
+
+  const handleCopyExpiry = () => {
+    void copyValue(expiry);
+  };
+
+  const handleCopyCvv = () => {
+    void copyValue(cvv);
   };
 
   return (
@@ -76,7 +89,7 @@ export default function CreditCard({
         </View>
       </View>
 
-      <Pressable onPress={copyToClipboard} style={styles.copyNumber} hitSlop={30}>
+      <Pressable onPress={handleCopyNumber} style={[styles.copyPill, styles.copyNumber]} hitSlop={30}>
         <Text style={styles.number}>{formatNumber(number)}</Text>
       </Pressable>
 
@@ -87,11 +100,23 @@ export default function CreditCard({
         </View>
         <View>
           <Text style={styles.label}>Expires</Text>
-          <Text style={styles.value}>{expiry}</Text>
+          <Pressable
+            onPress={handleCopyExpiry}
+            style={[styles.copyPill, styles.copyValuePill]}
+            hitSlop={20}
+          >
+            <Text style={styles.value}>{expiry}</Text>
+          </Pressable>
         </View>
         <View>
           <Text style={styles.label}>CVV</Text>
-          <Text style={styles.value}>{cvv}</Text>
+          <Pressable
+            onPress={handleCopyCvv}
+            style={[styles.copyPill, styles.copyValuePill]}
+            hitSlop={20}
+          >
+            <Text style={styles.value}>{cvv}</Text>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -180,21 +205,26 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginBottom: 5
   },
   value: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    marginTop: 4,
   },
-  copyNumber: {
+  copyPill: {
     backgroundColor: 'rgba(0,0,0,0.2)',
     paddingVertical: 5,
     paddingHorizontal: 7,
     borderRadius: 14,
     alignSelf: 'flex-start',
-    marginTop: -10,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.3)',
+  },
+  copyNumber: {
+    marginTop: -10,
+  },
+  copyValuePill: {
+    alignSelf: 'flex-start',
   },
 });
