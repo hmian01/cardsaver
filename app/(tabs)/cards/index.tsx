@@ -5,9 +5,9 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   AppState,
   AppStateStatus,
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -94,18 +94,29 @@ export default function CardsScreen() {
     isVaultUnlockedRef.current = isVaultUnlocked;
   }, [isVaultUnlocked]);
 
+  const prevBiometricValue = useRef<boolean | null>(null);
   useEffect(() => {
+    const prevValue = prevBiometricValue.current;
+    prevBiometricValue.current = biometricLockEnabled;
+
     if (!biometricLockEnabled) {
       hasUnlockedVault = true;
       isVaultUnlockedRef.current = true;
       setIsVaultUnlocked(true);
       setAuthError(null);
       setAuthInFlight(false);
-    } else {
+      return;
+    }
+
+    if (prevValue === false && biometricLockEnabled) {
       hasUnlockedVault = false;
       isVaultUnlockedRef.current = false;
       setIsVaultUnlocked(false);
+      return;
     }
+
+    isVaultUnlockedRef.current = hasUnlockedVault;
+    setIsVaultUnlocked(hasUnlockedVault);
   }, [biometricLockEnabled]);
 
   const filteredCards = useMemo(() => {

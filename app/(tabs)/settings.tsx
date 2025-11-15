@@ -1,7 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { Fonts } from '@/constants/theme';
 import { settingsStore } from '@/store/settingsStore';
@@ -39,8 +40,37 @@ export default function SettingsScreen() {
     setLastSavedAt(Date.now());
   };
 
+  const ensureBiometricAuth = async () => {
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    if (!hasHardware) {
+      Alert.alert('Face ID', 'This device does not support Face ID.');
+      return false;
+    }
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+    if (!isEnrolled) {
+      Alert.alert('Face ID', 'Set up Face ID on this device before using this lock.');
+      return false;
+    }
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Confirm Face ID',
+      fallbackLabel: 'Enter Passcode',
+      cancelLabel: 'Cancel',
+    });
+    if (!result.success) {
+      if (result.error !== 'user_cancel' && result.error !== 'system_cancel') {
+        Alert.alert('Face ID', 'Unable to verify your identity. Please try again.');
+      }
+      return false;
+    }
+    return true;
+  };
+
   const handleToggleBiometrics = async (value: boolean) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const verified = await ensureBiometricAuth();
+    if (!verified) {
+      return;
+    }
     setBiometricEnabled(value);
     settingsStore.setBiometricLockEnabled(value);
   };
