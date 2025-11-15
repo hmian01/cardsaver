@@ -193,12 +193,7 @@ export default function CameraTab() {
     return () => stopScanningLoop();
   }, [captureFrame, detectedNumber, isFocused, ocrUnavailable, permission?.granted, stopScanningLoop]);
 
-  const handleRescan = useCallback(async () => {
-    if (ocrUnavailable) {
-      return;
-    }
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    stopScanningLoop();
+  const resetDetectionState = useCallback(() => {
     setDetectedNumber(null);
     setDetectedExpiry(null);
     detectionBuffer.current = null;
@@ -206,13 +201,22 @@ export default function CameraTab() {
     setStabilityHits(0);
     setStatus(permission?.granted ? 'scanning' : 'requesting');
     setErrorMessage(null);
+  }, [permission?.granted]);
+
+  const handleRescan = useCallback(async () => {
+    if (ocrUnavailable) {
+      return;
+    }
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    stopScanningLoop();
+    resetDetectionState();
     if (permission?.granted && isFocused) {
       captureFrame();
       scanTimerRef.current = setInterval(() => {
         captureFrame();
       }, SCAN_INTERVAL);
     }
-  }, [captureFrame, isFocused, ocrUnavailable, permission?.granted, stopScanningLoop]);
+  }, [captureFrame, isFocused, ocrUnavailable, permission?.granted, resetDetectionState, stopScanningLoop]);
 
   const handleOpenEditor = useCallback(async () => {
     if (!detectedNumber) return;
@@ -224,8 +228,10 @@ export default function CameraTab() {
     if (detectedExpiry) {
       queryParts.push(`prefillExpiry=${encodeURIComponent(detectedExpiry)}`);
     }
+    stopScanningLoop();
+    resetDetectionState();
     router.push(`/(tabs)/cards/card-editor?${queryParts.join('&')}`);
-  }, [detectedExpiry, detectedNumber, router]);
+  }, [detectedExpiry, detectedNumber, resetDetectionState, router, stopScanningLoop]);
 
   const stabilityPercent = useMemo(() => {
     const clamped = Math.min(stabilityHits, MIN_STABLE_MATCHES);
@@ -274,6 +280,12 @@ export default function CameraTab() {
 
   const showPermissionFallback = permission?.granted === false;
   const rescanDisabled = showPermissionFallback || ocrUnavailable;
+
+  useEffect(() => {
+    if (!isFocused) {
+      resetDetectionState();
+    }
+  }, [isFocused, resetDetectionState]);
 
   return (
     <View style={styles.screen}>
