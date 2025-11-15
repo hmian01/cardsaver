@@ -289,7 +289,7 @@ export default function CardEditorScreen() {
       });
     }
 
-    router.push('/(tabs)/cards');
+    router.replace('/(tabs)/cards');
   };
 
   return (

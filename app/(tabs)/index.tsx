@@ -32,7 +32,7 @@ export default function HomeScreen() {
   
   const viewCards = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/(tabs)/cards');
+    router.replace('/(tabs)/cards');
   };
 
   return (
@@ -104,7 +104,7 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recently added</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/cards')}>
+          <TouchableOpacity onPress={viewCards}>
             <Text style={styles.link}>See all</Text>
           </TouchableOpacity>
         </View>
