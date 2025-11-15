@@ -51,6 +51,8 @@ export default function CameraTab() {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [detectedNumber, setDetectedNumber] = useState<string | null>(null);
+  const [detectedExpiry, setDetectedExpiry] = useState<string | null>(null);
+  const expiryBuffer = useRef<{ value: string; hits: number } | null>(null);
   const [stabilityHits, setStabilityHits] = useState(0);
   const [ocrUnavailable, setOcrUnavailable] = useState(() => !mlkitModule);
 
@@ -142,17 +144,32 @@ export default function CameraTab() {
       }
 
       const recognition = await mlkitModule.recognizeText(photo.uri);
-      const candidate = extractCardDigits(recognition);
+      const { number: numberCandidate, expiry: expiryCandidate } =
+        extractCardData(recognition);
 
-      if (candidate && stabilizeCandidate(candidate)) {
-        setDetectedNumber(candidate);
+      if (numberCandidate && stabilizeCandidate(numberCandidate)) {
+        setDetectedNumber(numberCandidate);
         setStatus('detected');
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         stopScanningLoop();
-      } else if (!candidate) {
+      } else if (!numberCandidate) {
         detectionBuffer.current = null;
         setStabilityHits(0);
       }
+
+      if (expiryCandidate && !detectedExpiry) {
+        if (expiryBuffer.current?.value === expiryCandidate) {
+          expiryBuffer.current.hits += 1;
+        } else {
+          expiryBuffer.current = { value: expiryCandidate, hits: 1 };
+        }
+        if (expiryBuffer.current.hits >= MIN_STABLE_MATCHES) {
+          setDetectedExpiry(expiryCandidate);
+        }
+      } else if (!expiryCandidate && !detectedExpiry) {
+        expiryBuffer.current = null;
+      }
+
     } catch (error) {
       console.warn('Card scan failed', error);
       setStatus('error');
@@ -160,7 +177,7 @@ export default function CameraTab() {
     } finally {
       processingRef.current = false;
     }
-  }, [detectedNumber, ocrUnavailable, stabilizeCandidate, stopScanningLoop]);
+  }, [detectedExpiry, detectedNumber, ocrUnavailable, stabilizeCandidate, stopScanningLoop]);
 
   useEffect(() => {
     if (!permission?.granted || !isFocused || detectedNumber || ocrUnavailable) {
@@ -183,7 +200,9 @@ export default function CameraTab() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     stopScanningLoop();
     setDetectedNumber(null);
+    setDetectedExpiry(null);
     detectionBuffer.current = null;
+    expiryBuffer.current = null;
     setStabilityHits(0);
     setStatus(permission?.granted ? 'scanning' : 'requesting');
     setErrorMessage(null);
@@ -198,12 +217,15 @@ export default function CameraTab() {
   const handleOpenEditor = useCallback(async () => {
     if (!detectedNumber) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const query = [
+    const queryParts = [
       `prefillNumber=${encodeURIComponent(detectedNumber)}`,
       `returnTo=${encodeURIComponent('/(tabs)/camera')}`,
-    ].join('&');
-    router.push(`/(tabs)/cards/card-editor?${query}`);
-  }, [detectedNumber, router]);
+    ];
+    if (detectedExpiry) {
+      queryParts.push(`prefillExpiry=${encodeURIComponent(detectedExpiry)}`);
+    }
+    router.push(`/(tabs)/cards/card-editor?${queryParts.join('&')}`);
+  }, [detectedExpiry, detectedNumber, router]);
 
   const stabilityPercent = useMemo(() => {
     const clamped = Math.min(stabilityHits, MIN_STABLE_MATCHES);
@@ -330,6 +352,14 @@ export default function CameraTab() {
               <Text style={styles.detectedBrand}>{brand}</Text>
             </View>
             <Text style={styles.detectedNumber}>{formattedNumber}</Text>
+            {detectedExpiry && (
+              <View style={styles.detectedMeta}>
+                <View style={styles.detectedMetaRow}>
+                  <Text style={styles.detectedMetaLabel}>Expires</Text>
+                  <Text style={styles.detectedMetaValue}>{detectedExpiry}</Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -374,19 +404,31 @@ export default function CameraTab() {
   );
 }
 
-const extractCardDigits = (result: TextRecognitionResult | null) => {
+type ExtractedCardData = {
+  number: string | null;
+  expiry: string | null;
+};
+
+const extractCardData = (result: TextRecognitionResult | null): ExtractedCardData => {
   if (!result) {
-    return null;
+    return { number: null, expiry: null, name: null };
   }
-  console.log(result); // will delete later
+
   const segments = collectSegments(result);
+  let number: string | null = null;
+  let expiry: string | null = null;
   for (const segment of segments) {
-    const candidate = findDigitsInText(segment);
-    if (candidate) {
-      return candidate;
+    if (!number) {
+      number = findDigitsInText(segment);
+    }
+    if (!expiry) {
+      expiry = findExpiryInText(segment);
+    }
+    if (number && expiry) {
+      break;
     }
   }
-  return null;
+  return { number, expiry };
 };
 
 const collectSegments = (result: TextRecognitionResult) => {
@@ -431,6 +473,24 @@ const findDigitsInText = (value: string) => {
 
   return null;
 };
+
+const findExpiryInText = (value: string) => {
+  if (!value) {
+    return null;
+  }
+  const matches = value
+    .toUpperCase()
+    .matchAll(/(0[1-9]|1[0-2])\s*\/\s*(\d{2}|\d{4})/g);
+  for (const match of matches) {
+    const month = match[1];
+    const yearRaw = match[2];
+    if (!month || !yearRaw) continue;
+    const year = yearRaw.length === 2 ? yearRaw : yearRaw.slice(-2);
+    return `${month}/${year}`;
+  }
+  return null;
+};
+
 
 const styles = StyleSheet.create({
   screen: {
@@ -597,6 +657,23 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: '#fff',
     fontFamily: Fonts.rounded,
+  },
+  detectedMeta: {
+    marginTop: 6,
+    gap: 6,
+  },
+  detectedMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  detectedMetaLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+  },
+  detectedMetaValue: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   actionsRow: {
     flexDirection: 'row',

@@ -103,7 +103,12 @@ const buildFormFromCard = (card?: StoredCard): FormState => {
 
 export default function CardEditorScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ cardId?: string; returnTo?: string; prefillNumber?: string }>();
+  const params = useLocalSearchParams<{
+    cardId?: string;
+    returnTo?: string;
+    prefillNumber?: string;
+    prefillExpiry?: string;
+  }>();
   const cardId = typeof params.cardId === 'string' ? params.cardId : undefined;
   const returnTo =
     typeof params.returnTo === 'string' ? decodeURIComponent(params.returnTo) : undefined;
@@ -112,6 +117,8 @@ export default function CardEditorScreen() {
   const isEditing = Boolean(cardId && existingCard);
   const prefillDigits =
     typeof params.prefillNumber === 'string' ? sanitizeCardNumber(params.prefillNumber) : '';
+  const prefillExpiry =
+    typeof params.prefillExpiry === 'string' ? decodeURIComponent(params.prefillExpiry) : '';
 
   const [defaultCardholder, setDefaultCardholder] = useState(
     () => settingsStore.getSettings().defaultCardholder,
@@ -132,7 +139,10 @@ export default function CardEditorScreen() {
   }, [defaultCardholder]);
 
   const buildPrefilledForm = useCallback((): FormState => {
-    const base = buildEmptyForm();
+    let base = buildEmptyForm();
+    if (prefillExpiry) {
+      base = { ...base, expiry: prefillExpiry };
+    }
     if (!prefillDigits) {
       return base;
     }
@@ -142,7 +152,7 @@ export default function CardEditorScreen() {
       ...base,
       number: formatCardNumber(limited, brandFromPrefill),
     };
-  }, [buildEmptyForm, prefillDigits]);
+  }, [buildEmptyForm, prefillDigits, prefillExpiry]);
 
   const [form, setForm] = useState<FormState>(() =>
     existingCard ? buildFormFromCard(existingCard) : buildPrefilledForm(),
