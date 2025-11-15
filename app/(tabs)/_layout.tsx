@@ -1,10 +1,10 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -24,13 +24,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="camera"
-        options={{
-          title: 'Camera',
-          tabBarIcon: ({ color }) => <MaterialIcons color={color} size={28} name="photo-camera"  />,
-        }}
-      />
-      <Tabs.Screen
         name="cards"
         options={{
           title: 'Cards',
@@ -38,16 +31,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="camera"
+        options={{
+          title: 'Camera',
+          tabBarIcon: ({ color }) => <MaterialIcons color={color} size={28} name="photo-camera"  />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
           tabBarIcon: ({ color }) => <MaterialIcons color={color} size={28} name="settings"  />,
-        }}
-      />
-      <Tabs.Screen
-        name="card-editor"
-        options={{
-          href: null,
         }}
       />
     </Tabs>

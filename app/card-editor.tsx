@@ -199,11 +199,15 @@ export default function CardEditorScreen() {
 
   const handleBack = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
     if (returnTo && typeof returnTo === 'string') {
       router.replace(returnTo as unknown as any);
-    } else {
-      router.replace('/(tabs)/cards');
+      return;
     }
+    router.replace('/(tabs)/cards');
   };
 
   const handleSubmit = async () => {
@@ -384,11 +388,11 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
   makelonger: {
-    marginBottom: 100
+    marginBottom: 200
   },
   container: {
     padding: 24,
-    paddingBottom: 100,
+    paddingBottom: 50,
     gap: 20,
   },
   headerRow: {
@@ -398,6 +402,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
+    marginBottom: 10
   },
   heading: {
     fontSize: 28,
