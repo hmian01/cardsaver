@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.hm.cardsaver",
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow CardSaver to scan card numbers securely."
+        "NSCameraUsageDescription": "Allow CardSaver to scan card numbers securely.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -26,8 +27,6 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ],
@@ -57,11 +56,19 @@
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
         }
       ],
-      ["expo-dev-client"]
+      [
+        "expo-dev-client"
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {}
     }
   }
 }
