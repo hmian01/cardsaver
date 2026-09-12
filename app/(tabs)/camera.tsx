@@ -2,10 +2,9 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useIsFocused } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import type { TextRecognitionResult } from 'expo-mlkit-ocr';
-import { NativeModulesProxy } from 'expo-modules-core';
+import { isSupported, recognizeText, type RecognitionResult } from 'expo-mlkit-ocr';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -29,12 +28,6 @@ const FRAME_HEIGHT = 280;
 const SCAN_INTERVAL = 1800;
 const MIN_STABLE_MATCHES = 2;
 
-type MlkitModule = {
-  recognizeText: (uri: string) => Promise<TextRecognitionResult>;
-};
-
-const mlkitModule = NativeModulesProxy.ExpoMlkitOcr as MlkitModule | undefined;
-
 export default function CameraTab() {
   const router = useRouter();
   const isFocused = useIsFocused();
@@ -54,7 +47,7 @@ export default function CameraTab() {
   const [detectedExpiry, setDetectedExpiry] = useState<string | null>(null);
   const expiryBuffer = useRef<{ value: string; hits: number } | null>(null);
   const [stabilityHits, setStabilityHits] = useState(0);
-  const [ocrUnavailable, setOcrUnavailable] = useState(() => !mlkitModule);
+  const ocrUnavailable = !isSupported();
 
   useEffect(() => {
     if (permission === null) {
@@ -124,16 +117,6 @@ export default function CameraTab() {
     setErrorMessage(null);
 
     try {
-      if (!mlkitModule) {
-        setOcrUnavailable(true);
-        setStatus('error');
-        setErrorMessage(
-          'Camera scan requires the ML Kit OCR native module. Rebuild the app to continue.',
-        );
-        stopScanningLoop();
-        return;
-      }
-
       const photo = await cameraRef.current.takePictureAsync({
         quality: Platform.select({ ios: 0.5, android: 0.4, default: 0.5 }),
         skipProcessing: true,
@@ -143,7 +126,7 @@ export default function CameraTab() {
         throw new Error('Missing capture uri');
       }
 
-      const recognition = await mlkitModule.recognizeText(photo.uri);
+      const recognition = await recognizeText(photo.uri);
       const { number: numberCandidate, expiry: expiryCandidate } =
         extractCardData(recognition);
 
@@ -421,9 +404,9 @@ type ExtractedCardData = {
   expiry: string | null;
 };
 
-const extractCardData = (result: TextRecognitionResult | null): ExtractedCardData => {
+const extractCardData = (result: RecognitionResult | null): ExtractedCardData => {
   if (!result) {
-    return { number: null, expiry: null, name: null };
+    return { number: null, expiry: null };
   }
 
   const segments = collectSegments(result);
@@ -443,7 +426,7 @@ const extractCardData = (result: TextRecognitionResult | null): ExtractedCardDat
   return { number, expiry };
 };
 
-const collectSegments = (result: TextRecognitionResult) => {
+const collectSegments = (result: RecognitionResult) => {
   const segments: string[] = [];
   if (result.text) {
     segments.push(result.text);
