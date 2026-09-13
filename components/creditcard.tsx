@@ -1,249 +1,203 @@
-import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { cardPalettes, Fonts } from '@/constants/theme';
+import { brandLabel, formatCardNumber } from '@/utils/cardNumber';
+import type { CardFormData } from '@/store/cardsStore';
+import { Icon } from './ui';
 
-import { Fonts } from '@/constants/theme';
-
-type CreditCardProps = {
-  description: string;
-  cardholder: string;
-  number: string;
-  expiry: string;
-  brand: string;
-  cvv?: string;
-  variant?: keyof typeof CARD_VARIANTS;
-  onCopy?: () => void;
-};
-
-const CARD_VARIANTS = {
-  midnight: {
-    background: '#111428',
-    accent: 'rgba(78, 74, 255, 0.35)',
-    accentSecondary: 'rgba(0, 212, 255, 0.25)',
-  },
-  sunset: {
-    background: '#3D1C32',
-    accent: 'rgba(255, 94, 58, 0.45)',
-    accentSecondary: 'rgba(255, 195, 160, 0.35)',
-  },
-  jade: {
-    background: '#0F2D2F',
-    accent: 'rgba(35, 224, 178, 0.35)',
-    accentSecondary: 'rgba(0, 116, 117, 0.35)',
-  },
-} as const;
-
-const BRAND_LOGOS = {
-  VISA: require('@/assets/images/visa-logo.png'),
-  MASTERCARD: require('@/assets/images/mastercard-logo.png'),
-  AMEX: require('@/assets/images/amex-logo.png'),
-  DISCOVER: require('@/assets/images/discover-logo.png'),
-  OTHER: require('@/assets/images/other-logo.png'),
-} as const;
-
-const formatNumber = (number: string) => number.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim();
-
+type Props = CardFormData & { revealed?: boolean; compact?: boolean };
 export default function CreditCard({
   description,
   cardholder,
   number,
   expiry,
-  brand = 'OTHER',
-  cvv,
-  variant = 'midnight',
-  onCopy,
-}: CreditCardProps) {
-  const palette = CARD_VARIANTS[variant];
-  const brandLogo = BRAND_LOGOS[brand as keyof typeof BRAND_LOGOS];
-
-  const copyValue = async (value?: string) => {
-    if (!value) return;
-    await Clipboard.setStringAsync(value);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onCopy?.();
-  };
-
-  const handleCopyNumber = () => {
-    void copyValue(number);
-  };
-
-  const handleCopyExpiry = () => {
-    void copyValue(expiry);
-  };
-
-  const handleCopyCvv = () => {
-    void copyValue(cvv);
-  };
-
-  return (
-    <View style={[styles.card, { backgroundColor: palette.background }]}>
-      <View style={[styles.overlay, styles.overlayPrimary, { backgroundColor: palette.accent }]} />
-      <View
-        style={[styles.overlay, styles.overlaySecondary, { backgroundColor: palette.accentSecondary }]}
-      />
-      <View style={styles.cardHeaderRow}>
-        <Text style={styles.description} numberOfLines={1} ellipsizeMode="clip">
-          {description}
+  brand,
+  variant = 'jade',
+  favorite,
+  revealed = false,
+  compact = false,
+}: Props) {
+  const p = cardPalettes[variant] ?? cardPalettes.jade;
+  if (compact)
+    return (
+      <View style={[styles.mini, { backgroundColor: p.background }]}>
+        <View style={[styles.miniRing, { borderColor: p.accent }]} />
+        <Icon name="credit-card" size={20} color={p.text} />
+        <Text style={[styles.miniNumber, { color: p.text }]}>
+          {number.slice(-4)}
         </Text>
-        <View style={styles.branding}>
-          <Image source={brandLogo} style={styles.logoImage}  resizeMode="contain"/>
-        </View>
       </View>
-
-      <Pressable onPress={handleCopyNumber} style={[styles.copyPill, styles.copyNumber]} hitSlop={30}>
-        <Text style={styles.number}>{formatNumber(number)}</Text>
-      </Pressable>
-
-      <View style={styles.bottomRow}>
-        <View style={styles.cardHolderName}>
-          <Text style={styles.label}>Card Holder</Text>
-          <Text style={styles.value} numberOfLines={1} ellipsizeMode="clip">
-            {cardholder.toUpperCase()}
+    );
+  return (
+    <View style={[styles.card, { backgroundColor: p.background }]}>
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <View style={[styles.ring, { borderColor: p.accent }]} />
+        <View
+          style={[styles.ring, styles.innerRing, { borderColor: p.accent }]}
+        />
+        <View style={[styles.shine, { backgroundColor: p.accent }]} />
+      </View>
+      <View style={styles.top}>
+        <View style={{ flex: 1, gap: 5 }}>
+          <Text style={[styles.name, { color: p.text }]} numberOfLines={1}>
+            {description || 'Your card'}
+          </Text>
+          <Text style={[styles.type, { color: p.muted }]}>
+            {brandLabel(brand)}
           </Text>
         </View>
-        <View style={[styles.infoColumn]}>
-          <Text style={styles.label}>Expires</Text>
-          <Pressable
-            onPress={handleCopyExpiry}
-            style={[styles.copyPill, styles.copyValuePill]}
-            hitSlop={20}
-          >
-            <Text style={styles.value} numberOfLines={1} ellipsizeMode="clip">
-              {expiry}
-            </Text>
-          </Pressable>
+        {favorite && <Icon name="star" size={19} color={p.text} />}
+        <Icon name="contactless" size={27} color={p.muted} />
+      </View>
+      <View style={styles.middle}>
+        <View style={[styles.chip, { borderColor: p.muted }]}>
+          <View style={[styles.chipLine, { borderColor: p.muted }]} />
+          <View style={[styles.chipCenter, { borderColor: p.muted }]} />
         </View>
-        <View style={styles.infoColumn}>
-          <Text style={styles.label}>CVV</Text>
-          <Pressable
-            onPress={handleCopyCvv}
-            style={[styles.copyPill, styles.copyValuePill]}
-            hitSlop={20}
-          >
-            <Text style={styles.value} numberOfLines={1} ellipsizeMode="tail">
-              {cvv}
-            </Text>
-          </Pressable>
+        <Text
+          style={[styles.number, { color: p.text }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
+          {revealed
+            ? formatCardNumber(number) || '••••  ••••  ••••  ••••'
+            : `••••  ••••  ${number.slice(-4) || '••••'}`}
+        </Text>
+      </View>
+      <View style={styles.bottom}>
+        <View style={{ flex: 1, gap: 5 }}>
+          <Text style={[styles.label, { color: p.muted }]}>CARDHOLDER</Text>
+          <Text style={[styles.value, { color: p.text }]} numberOfLines={1}>
+            {cardholder || 'Your name'}
+          </Text>
         </View>
+        <View style={{ gap: 5 }}>
+          <Text style={[styles.label, { color: p.muted }]}>EXPIRES</Text>
+          <Text style={[styles.value, { color: p.text }]}>
+            {expiry || 'MM/YY'}
+          </Text>
+        </View>
+        {brand === 'MASTERCARD' ? (
+          <View style={styles.mastercard}>
+            <View style={styles.masterLeft} />
+            <View style={styles.masterRight} />
+          </View>
+        ) : (
+          <Text style={[styles.brand, { color: p.text }]}>
+            {brand === 'OTHER'
+              ? 'CS'
+              : brand === 'DISCOVER'
+                ? 'DISCOVER'
+                : brand}
+          </Text>
+        )}
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 22,
-    padding: 20,
-    marginVertical: 6,
     width: '100%',
-    aspectRatio: 1.586,
+    aspectRatio: 1.62,
+    minHeight: 204,
+    maxHeight: 310,
+    padding: 23,
+    borderRadius: 25,
     overflow: 'hidden',
     justifyContent: 'space-between',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.2)',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 18,
-    elevation: 8,
-    paddingBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
-  overlay: {
+  ring: {
     position: 'absolute',
+    width: 330,
+    height: 330,
+    borderRadius: 170,
+    borderWidth: 45,
+    right: -155,
+    top: -105,
+    opacity: 0.23,
+  },
+  innerRing: {
+    width: 230,
+    height: 230,
+    borderRadius: 120,
+    borderWidth: 1,
+    right: -105,
+    top: -55,
+    opacity: 0.55,
+  },
+  shine: {
+    width: 380,
+    height: 120,
+    position: 'absolute',
+    bottom: -112,
+    left: -60,
+    transform: [{ rotate: '28deg' }],
+    opacity: 0.2,
+  },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  name: { fontSize: 20, fontWeight: '600', letterSpacing: -0.5 },
+  type: { fontSize: 11 },
+  middle: { gap: 13, marginVertical: 13 },
+  number: { fontFamily: Fonts.mono, fontSize: 22, letterSpacing: 1 },
+  chip: {
+    width: 33,
+    height: 25,
+    borderRadius: 6,
+    borderWidth: 1,
     opacity: 0.8,
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  overlayPrimary: {
-    width: '160%',
-    height: '120%',
-    top: -120,
-    left: -40,
-    transform: [{ rotate: '-12deg' }],
+  chipLine: { height: 10, borderTopWidth: 1, borderBottomWidth: 1 },
+  chipCenter: {
+    position: 'absolute',
+    left: 10,
+    width: 11,
+    height: 25,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
   },
-  overlaySecondary: {
-    width: '120%',
-    height: '100%',
-    bottom: -80,
-    right: -60,
-    transform: [{ rotate: '18deg' }],
+  bottom: { flexDirection: 'row', alignItems: 'flex-end', gap: 18 },
+  label: { fontSize: 8, letterSpacing: 1.2 },
+  value: { fontSize: 12, fontWeight: '500' },
+  brand: { fontWeight: '800', fontStyle: 'italic', fontSize: 17 },
+  mastercard: { width: 44, height: 26, flexDirection: 'row' },
+  masterLeft: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: '#F27564',
   },
-  cardHeaderRow: {
+  masterRight: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: '#F3C66E',
+    marginLeft: -10,
+    opacity: 0.9,
+  },
+  mini: {
+    width: 72,
+    height: 48,
+    borderRadius: 10,
+    padding: 8,
+    overflow: 'hidden',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
+    alignItems: 'flex-end',
   },
-  bottomRow: {
-    flexDirection: 'row',
-    gap: 30,
-    alignItems: 'center',
-
+  miniRing: {
+    position: 'absolute',
+    width: 65,
+    height: 65,
+    borderWidth: 12,
+    borderRadius: 35,
+    right: -22,
+    top: -27,
+    opacity: 0.4,
   },
-  cardHolderName: {
-    alignItems: 'flex-start',
-    width: 150
-  },
-  infoColumn: {
-    alignItems: 'flex-start',
-    width: 60
-  },
-  description: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: -30,
-    flex: 1,
-  },
-  chip: {
-    width: 48,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
-  },
-  branding: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 30
-  },
-  logoImage: {
-    width: 70,
-    height: 35,
-    marginLeft: 12,
-  },
-  number: {
-    color: '#fff',
-    fontSize: 23,
-    letterSpacing: 2,
-    fontFamily: Fonts.mono,
-  },
-  label: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 5
-  },
-  value: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  copyPill: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    paddingVertical: 5,
-    paddingHorizontal: 7,
-    borderRadius: 14,
-    alignSelf: 'flex-start',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  copyNumber: {
-    marginTop: -10,
-  },
-  copyValuePill: {
-    alignSelf: 'flex-start',
-  },
+  miniNumber: { fontFamily: Fonts.mono, fontSize: 9 },
 });

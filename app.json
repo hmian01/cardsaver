@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "cardsaver",
+    "name": "CardSaver",
     "slug": "cardsaver",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "cardsaver",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hm.cardsaver",
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow CardSaver to scan card numbers securely.",
+        "NSCameraUsageDescription": "Allow CardSaver to scan cards and take optional card photos.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -23,7 +23,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
@@ -44,10 +43,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#101310"
         }
       ],
       [
@@ -56,15 +52,8 @@
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
         }
       ],
-      [
-        "expo-dev-client"
-      ],
-      [
-        "expo-mlkit-ocr",
-        {
-          "iosEngine": "auto"
-        }
-      ],
+      ["expo-dev-client"],
+      "./plugins/with-card-scanner",
       "expo-font",
       "expo-image",
       "expo-web-browser",
@@ -75,6 +64,14 @@
             "deploymentTarget": "16.0",
             "useFrameworks": "static"
           }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow CardSaver to attach photos you choose to your cards.",
+          "cameraPermission": "Allow CardSaver to scan cards and take optional card photos.",
+          "microphonePermission": false
         }
       ]
     ],

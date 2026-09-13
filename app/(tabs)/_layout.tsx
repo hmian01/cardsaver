@@ -1,47 +1,59 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HapticTab } from '@/components/haptic-tab';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-
+import { Icon } from '@/components/ui';
+import { theme as t } from '@/constants/theme';
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
+      initialRouteName="cards"
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <MaterialIcons color={color} size={28} name="home"  />,
-        }}
-      />
+        tabBarActiveTintColor: t.accent,
+        tabBarInactiveTintColor: t.subtle,
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: t.background,
+          borderTopColor: t.border,
+          elevation: 0,
+          height: 64 + Math.max(insets.bottom, 8),
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+      }}
+    >
+      <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen
         name="cards"
         options={{
-          title: 'Cards',
-          tabBarIcon: ({ color }) => <MaterialIcons color={color} size={28} name="credit-card"  />,
+          title: 'Wallet',
+          tabBarAccessibilityLabel: 'Wallet',
+          tabBarIcon: ({ color }) => (
+            <Icon name="wallet" size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="camera"
         options={{
-          title: 'Camera',
-          tabBarIcon: ({ color }) => <MaterialIcons color={color} size={28} name="photo-camera"  />,
+          title: 'Scan',
+          tabBarAccessibilityLabel: 'Scan',
+          tabBarIcon: ({ color }) => (
+            <Icon name="crop-free" size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color }) => <MaterialIcons color={color} size={28} name="settings"  />,
+          tabBarAccessibilityLabel: 'Settings',
+          tabBarIcon: ({ color }) => (
+            <Icon name="tune" size={24} color={color} />
+          ),
         }}
       />
     </Tabs>

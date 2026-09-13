@@ -1,31 +1,4 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
-export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
-};
 
 export const Fonts = Platform.select({
   ios: {
@@ -47,7 +20,54 @@ export const Fonts = Platform.select({
   web: {
     sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
+    rounded:
+      "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+export const theme = {
+  background: '#101310',
+  surface: '#1B201B',
+  raised: '#252C24',
+  border: '#333B31',
+  text: '#F3F4E9',
+  muted: '#A6AF9F',
+  subtle: '#727F6C',
+  accent: '#C9F27D',
+  ink: '#1A2811',
+  danger: '#FFAAA0',
+  warning: '#EDC582',
+};
+export const cardPalettes = {
+  midnight: {
+    background: '#253A4C',
+    accent: '#54778D',
+    text: '#F2F5F7',
+    muted: '#BFCDDA',
+  },
+  sunset: {
+    background: '#9D4F36',
+    accent: '#DDA47C',
+    text: '#FFF4E9',
+    muted: '#F1C9B5',
+  },
+  jade: {
+    background: '#304C3B',
+    accent: '#92AE70',
+    text: '#F0F5DC',
+    muted: '#C3D3B6',
+  },
+  pearl: {
+    background: '#D9D7C9',
+    accent: '#A9AF9C',
+    text: '#2A352D',
+    muted: '#536052',
+  },
+  lilac: {
+    background: '#675B80',
+    accent: '#B2A1C8',
+    text: '#FBF5FF',
+    muted: '#E0D2ED',
+  },
+};

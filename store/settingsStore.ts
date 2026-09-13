@@ -1,92 +1,97 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { useSyncExternalStore } from 'react';
 export type SettingsState = {
   defaultCardholder: string;
   biometricLockEnabled: boolean;
+  hideNumbers: boolean;
 };
-
-type SettingsListener = (settings: SettingsState) => void;
-
-const STORAGE_KEY = '@cardsaver/settings';
-const DEFAULT_SETTINGS: SettingsState = {
+const defaults: SettingsState = {
   defaultCardholder: '',
-  biometricLockEnabled: true,
+  biometricLockEnabled: false,
+  hideNumbers: true,
 };
-
-let settings: SettingsState = { ...DEFAULT_SETTINGS };
-const listeners = new Set<SettingsListener>();
-let hasHydratedSettings = false;
-let localMutationDuringHydration = false;
-
-const notify = () => {
-  const snapshot = { ...settings };
-  listeners.forEach((listener) => listener(snapshot));
-};
-
-const setSettings = (nextSettings: SettingsState) => {
-  settings = nextSettings;
-  notify();
-};
-
-const persistSettings = (nextSettings: SettingsState) => {
-  setSettings(nextSettings);
-  const payload = JSON.stringify(nextSettings);
-  AsyncStorage.setItem(STORAGE_KEY, payload).catch((error) => {
-    console.error('Failed to persist settings', error);
-  });
-  if (!hasHydratedSettings) {
-    localMutationDuringHydration = true;
-  }
-};
-
-const hydrateSettings = async () => {
+let snapshot = { ...defaults, loading: true, error: false };
+const listeners = new Set<() => void>();
+const emit = () => listeners.forEach((listener) => listener());
+const hydrate = async () => {
   try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      if (localMutationDuringHydration) {
-        return;
-      }
-      const parsed = JSON.parse(stored);
-      if (parsed && typeof parsed === 'object') {
-        setSettings({
-          defaultCardholder:
-            typeof parsed.defaultCardholder === 'string' ? parsed.defaultCardholder : '',
-          biometricLockEnabled:
-            typeof parsed.biometricLockEnabled === 'boolean'
-              ? parsed.biometricLockEnabled
-              : DEFAULT_SETTINGS.biometricLockEnabled,
-        });
-        return;
-      }
-      console.warn('Stored settings invalid. Resetting to defaults.');
-    }
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch (error) {
-    console.error('Failed to hydrate settings store', error);
-  } finally {
-    hasHydratedSettings = true;
+    const raw = await AsyncStorage.getItem('@cardsaver/settings');
+    const value = raw ? JSON.parse(raw) : {};
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      throw new Error('Invalid settings');
+    snapshot = {
+      defaultCardholder:
+        typeof value.defaultCardholder === 'string'
+          ? value.defaultCardholder
+          : '',
+      biometricLockEnabled:
+        typeof value.biometricLockEnabled === 'boolean'
+          ? value.biometricLockEnabled
+          : false,
+      hideNumbers:
+        typeof value.hideNumbers === 'boolean' ? value.hideNumbers : true,
+      loading: false,
+      error: false,
+    };
+  } catch {
+    snapshot = { ...snapshot, loading: false, error: true };
   }
+  emit();
 };
-
+let ready = hydrate();
+let pending: Promise<unknown> = Promise.resolve();
 export const settingsStore = {
-  getSettings: () => ({ ...settings }),
-  subscribe: (listener: SettingsListener) => {
+  getSnapshot: () => snapshot,
+  subscribe: (listener: () => void) => {
     listeners.add(listener);
-    listener({ ...settings });
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   },
-  setDefaultCardholder: (value: string) => {
-    persistSettings({
-      ...settings,
-      defaultCardholder: value.trim(),
-    });
+  retry: () => {
+    snapshot = { ...snapshot, loading: true };
+    emit();
+    ready = hydrate();
   },
-  setBiometricLockEnabled: (enabled: boolean) => {
-    persistSettings({
-      ...settings,
-      biometricLockEnabled: enabled,
+  update: (data: Partial<SettingsState>) => {
+    const task = pending.then(async () => {
+      await ready;
+      if (snapshot.error)
+        throw new Error(
+          'Settings could not be loaded. Please restart the app.',
+        );
+      const next = { ...snapshot, ...data };
+      await AsyncStorage.setItem(
+        '@cardsaver/settings',
+        JSON.stringify({
+          defaultCardholder: next.defaultCardholder,
+          biometricLockEnabled: next.biometricLockEnabled,
+          hideNumbers: next.hideNumbers,
+        }),
+      );
+      snapshot = next;
+      emit();
     });
+    pending = task.catch(() => undefined);
+    return task;
+  },
+  reset: () => {
+    const task = pending.then(async () => {
+      await ready;
+      await AsyncStorage.setItem(
+        '@cardsaver/settings',
+        JSON.stringify(defaults),
+      );
+      snapshot = { ...defaults, loading: false, error: false };
+      emit();
+    });
+    pending = task.catch(() => undefined);
+    return task;
   },
 };
-
-void hydrateSettings();
+export const useSettings = () =>
+  useSyncExternalStore(
+    settingsStore.subscribe,
+    settingsStore.getSnapshot,
+    settingsStore.getSnapshot,
+  );

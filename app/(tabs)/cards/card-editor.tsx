@@ -1,692 +1,473 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import * as Haptics from 'expo-haptics';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
+  useNavigation,
+  usePreventRemove,
+  type NavigationAction,
+} from '@react-navigation/native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
   Image,
-  ImageSourcePropType,
-  Keyboard,
-  Modal,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
-
-import { Fonts } from '@/constants/theme';
-import { cardsStore, type CardVariant, type StoredCard } from '@/store/cardsStore';
-import { settingsStore } from '@/store/settingsStore';
+import CreditCard from '@/components/creditcard';
+import { useFeedback } from '@/components/feedback';
+import {
+  Button,
+  Dialog,
+  EmptyState,
+  Field,
+  Header,
+  Icon,
+  Notice,
+  Screen,
+  Section,
+  ui,
+} from '@/components/ui';
+import { cardPalettes, theme as t } from '@/constants/theme';
+import {
+  cardsStore,
+  useCards,
+  type CardFormData,
+  type StoredCard,
+} from '@/store/cardsStore';
+import { takeScanDraft } from '@/store/scanDraft';
+import { useSettings } from '@/store/settingsStore';
+import { CARD_VARIANTS } from '@/utils/cardData';
+import {
+  imageUri,
+  materializeImages,
+  pickCardImage,
+  removeImages,
+} from '@/utils/cardImages';
+import { defaultCardName, validateCardForm } from '@/utils/cardForm';
 import {
   detectBrand,
   formatCardNumber,
-  limitDigitsForBrand,
+  formatExpiryInput,
+  normalizeExpiry,
   sanitizeCardNumber,
-  type CardBrand,
 } from '@/utils/cardNumber';
 
-const VARIANT_OPTIONS: CardVariant[] = ['midnight', 'sunset', 'jade'];
-
-type FormState = {
-  description: string;
-  cardholder: string;
-  number: string;
-  expiry: string;
-  cvv: string;
-};
-
-const DEFAULT_FORM: FormState = {
-  description: '',
-  cardholder: '',
-  number: '',
-  expiry: '',
-  cvv: '',
-};
-
-const BRAND_LOGOS: Record<CardBrand, ImageSourcePropType> = {
-  VISA: require('@/assets/images/visa-logo.png'),
-  MASTERCARD: require('@/assets/images/mastercard-logo.png'),
-  AMEX: require('@/assets/images/amex-logo.png'),
-  DISCOVER: require('@/assets/images/other-logo.png'),
-  OTHER: require('@/assets/images/other-logo.png'),
-};
-
-const formatExpiryInput = (value: string) => {
-  const digits = value.replace(/\D/g, '').slice(0, 6);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 6)}`;
-};
-
-const normalizeExpiry = (value: string): string | null => {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length < 4) return null;
-  const month = digits.slice(0, 2);
-  const monthNum = Number(month);
-  if (!month || Number.isNaN(monthNum) || monthNum < 1 || monthNum > 12) return null;
-
-  const year = digits.slice(2);
-  if (year.length === 2) {
-    return `${month}/${year}`;
-  }
-  if (year.length === 4) {
-    return `${month}/${year.slice(2)}`;
-  }
-  return null;
-};
-
-const isValidCvv = (value: string) => value.length === 3 || value.length === 4;
-
-let lastVariant: CardVariant | null = null;
-const getRandomVariant = () => {
-  const pool = lastVariant ? VARIANT_OPTIONS.filter((variant) => variant !== lastVariant) : VARIANT_OPTIONS;
-  const options = pool.length > 0 ? pool : VARIANT_OPTIONS;
-  const variant = options[Math.floor(Math.random() * options.length)];
-  lastVariant = variant;
-  return variant;
-};
-
-const buildFormFromCard = (card?: StoredCard): FormState => {
-  if (!card) return DEFAULT_FORM;
-  const normalizedBrand = (card.brand?.toUpperCase?.() as CardBrand) ?? 'OTHER';
-  return {
-    description: card.description,
-    cardholder: card.cardholder,
-    number: formatCardNumber(card.number, normalizedBrand),
-    expiry: card.expiry,
-    cvv: card.cvv ?? '',
-  };
-};
-
 export default function CardEditorScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{
-    cardId?: string;
-    returnTo?: string;
-    prefillNumber?: string;
-    prefillExpiry?: string;
-  }>();
-  const cardId = typeof params.cardId === 'string' ? params.cardId : undefined;
-  const returnTo =
-    typeof params.returnTo === 'string' ? decodeURIComponent(params.returnTo) : undefined;
-  const existingCard = cardId ? cardsStore.getCardById(cardId) : undefined;
-  const existingCardId = existingCard?.id;
-  const isEditing = Boolean(cardId && existingCard);
-  const prefillDigits =
-    typeof params.prefillNumber === 'string' ? sanitizeCardNumber(params.prefillNumber) : '';
-  const prefillExpiry =
-    typeof params.prefillExpiry === 'string' ? decodeURIComponent(params.prefillExpiry) : '';
-
-  const [defaultCardholder, setDefaultCardholder] = useState(
-    () => settingsStore.getSettings().defaultCardholder,
-  );
-
-  useEffect(() => {
-    const unsubscribe = settingsStore.subscribe((next) => {
-      setDefaultCardholder(next.defaultCardholder);
-    });
-    return unsubscribe;
-  }, []);
-
-  const buildEmptyForm = useCallback((): FormState => {
-    return {
-      ...DEFAULT_FORM,
-      cardholder: defaultCardholder || '',
-    };
-  }, [defaultCardholder]);
-
-  const buildPrefilledForm = useCallback((): FormState => {
-    let base = buildEmptyForm();
-    if (prefillExpiry) {
-      base = { ...base, expiry: prefillExpiry };
-    }
-    if (!prefillDigits) {
-      return base;
-    }
-    const brandFromPrefill = detectBrand(prefillDigits);
-    const limited = limitDigitsForBrand(prefillDigits, brandFromPrefill);
-    return {
-      ...base,
-      number: formatCardNumber(limited, brandFromPrefill),
-    };
-  }, [buildEmptyForm, prefillDigits, prefillExpiry]);
-
-  const [form, setForm] = useState<FormState>(() =>
-    existingCard ? buildFormFromCard(existingCard) : buildPrefilledForm(),
-  );
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (cardId) {
-        const latestCard = cardsStore.getCardById(cardId);
-        if (latestCard) {
-          setForm(buildFormFromCard(latestCard));
-        } else {
-          Alert.alert('Card not found', 'The card you are trying to edit no longer exists.', [
-            { text: 'OK', onPress: () => router.back() },
-          ]);
-        }
-      } else {
-        setForm(buildPrefilledForm());
-      }
-    }, [buildPrefilledForm, cardId, router]),
-  );
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardVisible(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardVisible(false));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
-  const openDeleteModal = useCallback(async () => {
-    if (!isEditing) return;
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsDeleteModalVisible(true);
-  }, [isEditing]);
-
-  const closeDeleteModal = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsDeleteModalVisible(false);
-  }, []);
-
-  const confirmDelete = useCallback(async () => {
-    const targetId = existingCardId ?? cardId;
-    if (!targetId) return;
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    cardsStore.removeCard(targetId);
-    setIsDeleteModalVisible(false);
-    router.back();
-  }, [cardId, existingCardId, router]);
-
-  const detectedBrand = useMemo(() => {
-    const digits = sanitizeCardNumber(form.number);
-    return detectBrand(digits);
-  }, [form.number]);
-
-  const brandLogo = BRAND_LOGOS[detectedBrand];
-
-  const handleNumberChange = (value: string) => {
-    const digits = sanitizeCardNumber(value);
-    const brandGuess = detectBrand(digits);
-    const limitedDigits = limitDigitsForBrand(digits, brandGuess);
-    const formatted = formatCardNumber(limitedDigits, brandGuess);
-    setForm((prev) => ({ ...prev, number: formatted }));
-  };
-
-  const handleExpiryChange = (value: string) => {
-    setForm((prev) => ({ ...prev, expiry: formatExpiryInput(value) }));
-  };
-
-  const handleCvvChange = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 4);
-    setForm((prev) => ({ ...prev, cvv: digits }));
-  };
-
-  const handleBack = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    if (returnTo && typeof returnTo === 'string') {
-      router.back();
-      return;
-    }
-    router.back();
-  };
-
-  const handleSubmit = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    const description = form.description.trim();
-    const cardholder = form.cardholder.trim();
-    const digits = sanitizeCardNumber(form.number);
-    const brand = detectBrand(digits);
-    const normalizedExpiry = normalizeExpiry(form.expiry);
-
-    if (!description || !cardholder) {
-      Alert.alert('Missing info', 'Please add a nickname and cardholder name.');
-      return;
-    }
-
-    if (brand === 'AMEX') {
-      if (digits.length !== 15) {
-        Alert.alert('Card number', 'American Express numbers must be 15 digits.');
-        return;
-      }
-    } else if (digits.length !== 16) {
-      Alert.alert('Card number', 'Card numbers must be 16 digits.');
-      return;
-    }
-
-    if (!normalizedExpiry) {
-      Alert.alert('Expiry', 'Please enter expiry as MM/YY or MM/YYYY.');
-      return;
-    }
-
-    if (!isValidCvv(form.cvv)) {
-      Alert.alert('CVV', 'Security code must be 3 or 4 digits.');
-      return;
-    }
-
-    if (isEditing && existingCard) {
-      cardsStore.updateCard(existingCard.id, {
-        description,
-        cardholder,
-        number: digits,
-        expiry: normalizedExpiry,
-        cvv: form.cvv,
-        brand,
-        variant: existingCard.variant,
-      });
-    } else {
-      cardsStore.addCard({
-        description,
-        cardholder,
-        number: digits,
-        expiry: normalizedExpiry,
-        cvv: form.cvv,
-        brand,
-        variant: getRandomVariant(),
-      });
-    }
-
-    router.back();
-  };
-
+  const { cardId } = useLocalSearchParams<{ cardId?: string }>();
+  const { cards, loading, error } = useCards();
+  const existing = cards.find((card) => card.id === cardId);
+  if (loading)
+    return (
+      <Screen>
+        <ActivityIndicator color={t.accent} />
+      </Screen>
+    );
+  if (error || (cardId && !existing))
+    return (
+      <Screen>
+        <Header title="Edit card" />
+        <EmptyState
+          title={error ? 'Wallet unavailable' : 'Card not found'}
+          description={error ?? 'This card may have been removed.'}
+        />
+      </Screen>
+    );
   return (
-    <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={isKeyboardVisible ? styles.makelonger : undefined}>
-        <View style={styles.headerRow}>
-          <Pressable
-            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
-            onPress={handleBack}
-            hitSlop={30}
-          >
-            <MaterialIcons size={22} color="#fff" name="arrow-back" />
-          </Pressable>
-          <View style={styles.headerText}>
-            <Text style={styles.heading}>{isEditing ? 'Edit card' : 'Add new card'}</Text>
-            <Text style={styles.subheading}>
-              {isEditing ? 'Update details securely' : 'Store a payment method securely'}
-            </Text>
-          </View>
-          {isEditing && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={openDeleteModal}
-              accessibilityLabel="Delete this card"
-              hitSlop={20}
-            >
-              <MaterialIcons name="delete" size={22} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-          <View style={styles.cardPreview}>
-            <View style={styles.previewTopRow}>
-              <Text style={styles.previewTitle} numberOfLines={1} ellipsizeMode="tail">
-                {form.description || 'Card nickname'}
-              </Text>
-              <Image source={brandLogo} style={styles.logoImage} resizeMode="contain" />
-            </View>
-            <Text style={styles.previewNumber}>{form.number || '•••• •••• •••• ••••'}</Text>
-            <View style={styles.previewRowLabels}>
-                <Text style={styles.previewLabel}>Cardholder</Text>
-                <Text style={[styles.previewLabel, styles.expirylabel]}>Expires</Text>
-                <Text style={styles.previewLabel}>CVV</Text>
-            </View>
-            <View style={styles.previewRowValues}>
-              <Text style={[styles.previewValue, styles.previewCardholder]} numberOfLines={1} ellipsizeMode="tail">
-                {(form.cardholder || 'Your Name').toUpperCase()}
-              </Text>
-              <View style={styles.expCvvValues}>
-                <Text style={styles.previewValue}>{form.expiry || 'MM/YY'}</Text>
-                <Text style={styles.previewValue}>{form.cvv || '***'}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.formCard}>
-            <Text style={styles.formLabel}>Nickname</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Travel Visa"
-              placeholderTextColor="#8C93AD"
-              value={form.description}
-              onChangeText={(text) => setForm((prev) => ({ ...prev, description: text }))}
-            />
-
-            <Text style={styles.formLabel}>Name on card</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Alexis Taylor"
-              placeholderTextColor="#8C93AD"
-              value={form.cardholder}
-              onChangeText={(text) => setForm((prev) => ({ ...prev, cardholder: text }))}
-              autoCapitalize="words"
-            />
-
-            <Text style={styles.formLabel}>Card number</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="1234 5678 9012 3456"
-              placeholderTextColor="#8C93AD"
-              keyboardType="number-pad"
-              value={form.number}
-              onChangeText={handleNumberChange}
-              maxLength={detectedBrand === 'AMEX' ? 17 : 19}
-            />
-
-            <View style={styles.row}>
-              <View style={styles.col}>
-                <Text style={styles.formLabel}>Expiry</Text>
-                <TextInput
-                  style={[styles.input, styles.ExpCvvInput]}
-                  placeholder="MM/YY"
-                  placeholderTextColor="#8C93AD"
-                  keyboardType="number-pad"
-                  value={form.expiry}
-                  onChangeText={handleExpiryChange}
-                  maxLength={7}
-                />
-              </View>
-              <View style={styles.col}>
-                <Text style={styles.formLabel}>CVV</Text>
-                <TextInput
-                  style={[styles.input, styles.ExpCvvInput]}
-                  placeholder="123"
-                  placeholderTextColor="#8C93AD"
-                  keyboardType="number-pad"
-                  value={form.cvv}
-                  onChangeText={handleCvvChange}
-                  maxLength={4}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
-              <Text style={styles.submitText}>{isEditing ? 'Save changes' : 'Save card'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-      <Modal visible={isDeleteModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <MaterialIcons name="warning" size={32} color="#FF6B6B" />
-            <Text style={styles.modalTitle}>Delete this card?</Text>
-            <Text style={styles.modalSubtitle}>
-              This removes "{form.description || 'this card'}" from your vault permanently.
-            </Text>
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={closeDeleteModal}
-              >
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={confirmDelete}
-              >
-                <Text style={styles.confirmText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
+    <Editor
+      key={cardId ?? 'new'}
+      existing={existing}
+      suggestedName={defaultCardName(cards)}
+    />
   );
 }
-
+function Editor({
+  existing,
+  suggestedName,
+}: {
+  existing?: StoredCard;
+  suggestedName: string;
+}) {
+  const router = useRouter();
+  const navigation = useNavigation();
+  const notify = useFeedback();
+  const settings = useSettings();
+  const [initial] = useState<CardFormData>(() => {
+    const scan = existing ? undefined : takeScanDraft();
+    return existing
+      ? { ...existing, number: formatCardNumber(existing.number) }
+      : {
+          description: suggestedName,
+          cardholder: settings.defaultCardholder,
+          number: formatCardNumber(scan?.number ?? ''),
+          expiry: scan?.expiry ?? '',
+          cvv: '',
+          brand: detectBrand(scan?.number ?? ''),
+          variant: 'jade',
+          note: '',
+        };
+  });
+  const [form, setForm] = useState(initial);
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof CardFormData, string>>
+  >({});
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoSide, setPhotoSide] = useState<'frontImage' | 'backImage' | null>(
+    null,
+  );
+  const afterPhotoClose = useRef<(() => void) | null>(null);
+  const [pendingAction, setPendingAction] = useState<NavigationAction | null>(
+    null,
+  );
+  const [leave, setLeave] = useState<'discard' | 'saved' | null>(null);
+  const savedId = useRef<string | null>(null);
+  const dirty = JSON.stringify(initial) !== JSON.stringify(form);
+  usePreventRemove((dirty || busy || photoBusy) && !leave, ({ data }) => {
+    if (!busyRef.current && !photoBusy) setPendingAction(data.action);
+  });
+  useEffect(() => {
+    if (leave === 'discard' && pendingAction)
+      navigation.dispatch(pendingAction);
+    if (leave === 'saved') {
+      if (existing && router.canGoBack()) router.back();
+      else
+        router.replace({
+          pathname: '/(tabs)/cards/card-details',
+          params: { cardId: savedId.current! },
+        });
+    }
+  }, [existing, leave, navigation, pendingAction, router]);
+  const update = <K extends keyof CardFormData>(
+    key: K,
+    value: CardFormData[K],
+  ) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setErrors((current) => ({ ...current, [key]: undefined }));
+  };
+  const choosePhoto = async (camera: boolean) => {
+    const side = photoSide;
+    if (!side || photoBusy) return;
+    setPhotoBusy(true);
+    setError('');
+    if (Platform.OS === 'ios') {
+      // UIKit must finish dismissing our dialog before presenting its photo picker.
+      await new Promise<void>((resolve) => {
+        afterPhotoClose.current = resolve;
+        setPhotoSide(null);
+      });
+    } else setPhotoSide(null);
+    try {
+      const image = await pickCardImage(camera);
+      if (image) update(side, image);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'Photo could not be added. Try again.',
+      );
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+  const save = async () => {
+    if (busyRef.current || photoBusy) return;
+    const validation = validateCardForm(form, existing?.number);
+    setErrors(validation);
+    if (Object.keys(validation).length) {
+      setError('Check the highlighted fields below.');
+      return;
+    }
+    busyRef.current = true;
+    setBusy(true);
+    setError('');
+    let created: string[] = [];
+    try {
+      const data: CardFormData = {
+        ...form,
+        description: form.description.trim(),
+        cardholder: form.cardholder.trim(),
+        number: sanitizeCardNumber(form.number),
+        expiry: normalizeExpiry(form.expiry)!,
+        cvv: form.cvv?.trim() || undefined,
+        note: form.note?.trim() || undefined,
+        brand: detectBrand(form.number),
+      };
+      const materialized = await materializeImages(data);
+      created = materialized.created;
+      if (existing) {
+        await cardsStore.updateCard(existing.id, materialized.card);
+        savedId.current = existing.id;
+      } else {
+        const card = await cardsStore.addCard(materialized.card);
+        savedId.current = card.id;
+      }
+      await removeImages(
+        [existing?.frontImage, existing?.backImage],
+        cardsStore.getSnapshot().cards,
+      );
+      notify(existing ? 'Card updated' : 'Card added to your wallet');
+      setLeave('saved');
+    } catch (e) {
+      await removeImages(created, cardsStore.getSnapshot().cards);
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Could not save this card. Check your device storage and try again.',
+      );
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Screen>
+        <Header title={existing ? 'Edit card' : 'Add a card'} />
+        <CreditCard {...form} brand={detectBrand(form.number)} revealed />
+        <View style={styles.colors}>
+          {CARD_VARIANTS.map((variant) => (
+            <Pressable
+              key={variant}
+              accessibilityRole="radio"
+              accessibilityLabel={`${variant} card color`}
+              accessibilityState={{ checked: form.variant === variant }}
+              onPress={() => update('variant', variant)}
+              style={[
+                styles.color,
+                { backgroundColor: cardPalettes[variant].background },
+                form.variant === variant && { borderColor: t.accent },
+              ]}
+            >
+              {form.variant === variant && (
+                <Icon
+                  name="check"
+                  color={cardPalettes[variant].text}
+                  size={19}
+                />
+              )}
+            </Pressable>
+          ))}
+        </View>
+        {error ? <Notice error>{error}</Notice> : null}
+        <Section title="The essentials">
+          <Field
+            label="Card name"
+            placeholder="e.g. Everyday Visa"
+            value={form.description}
+            onChangeText={(value) => update('description', value)}
+            maxLength={80}
+            error={errors.description}
+            editable={!busy}
+          />
+          <Field
+            label="Card number"
+            value={form.number}
+            placeholder="0000 0000 0000 0000"
+            keyboardType="number-pad"
+            autoComplete="off"
+            onChangeText={(value) =>
+              update(
+                'number',
+                formatCardNumber(sanitizeCardNumber(value).slice(0, 19)),
+              )
+            }
+            error={errors.number}
+            editable={!busy}
+          />
+          <Field
+            label="Cardholder"
+            optional
+            value={form.cardholder}
+            placeholder="Name on card"
+            autoCapitalize="words"
+            maxLength={100}
+            onChangeText={(value) => update('cardholder', value)}
+            editable={!busy}
+          />
+          <View style={[ui.row, { alignItems: 'flex-start', gap: 14 }]}>
+            <Field
+              label="Expiry"
+              value={form.expiry}
+              placeholder="MM/YY"
+              keyboardType="number-pad"
+              onChangeText={(value) =>
+                update('expiry', formatExpiryInput(value))
+              }
+              error={errors.expiry}
+              editable={!busy}
+            />
+            <Field
+              label="Security code"
+              optional
+              value={form.cvv ?? ''}
+              placeholder="CVV"
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={4}
+              onChangeText={(value) => update('cvv', value.replace(/\D/g, ''))}
+              error={errors.cvv}
+              editable={!busy}
+            />
+          </View>
+        </Section>
+        <Section
+          title="Card photos"
+          trailing={<Text style={ui.caption}>Optional</Text>}
+        >
+          <View style={styles.photos}>
+            {(['frontImage', 'backImage'] as const).map((side) => (
+              <View key={side} style={{ flex: 1, gap: 8 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${form[side] ? 'Change' : 'Add'} ${side === 'frontImage' ? 'front' : 'back'} photo`}
+                  disabled={photoBusy || busy}
+                  onPress={() => setPhotoSide(side)}
+                  style={styles.photo}
+                >
+                  {form[side] ? (
+                    <Image
+                      source={{ uri: imageUri(form[side]!) }}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <>
+                      <Icon
+                        name="add-photo-alternate"
+                        color={t.muted}
+                        size={26}
+                      />
+                      <Text style={ui.caption}>
+                        {side === 'frontImage' ? 'Front' : 'Back'}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+                {form[side] && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${side === 'frontImage' ? 'front' : 'back'}`}
+                    disabled={busy}
+                    onPress={() => update(side, undefined)}
+                    style={styles.remove}
+                  >
+                    <Text style={ui.caption}>
+                      Remove {side === 'frontImage' ? 'front' : 'back'}
+                    </Text>
+                    <Icon name="close" size={14} color={t.muted} />
+                  </Pressable>
+                )}
+              </View>
+            ))}
+          </View>
+          {photoBusy && <ActivityIndicator color={t.accent} />}
+          <Text style={ui.caption}>Add from your library or take a photo.</Text>
+        </Section>
+        <Section title="A note to yourself">
+          <Field
+            label="Note"
+            optional
+            multiline
+            maxLength={2000}
+            value={form.note ?? ''}
+            placeholder="Rewards, travel plans, or a useful reminder…"
+            onChangeText={(value) => update('note', value)}
+            editable={!busy}
+          />
+          <Text style={[ui.caption, { textAlign: 'right' }]}>
+            {form.note?.length ?? 0} / 2,000
+          </Text>
+        </Section>
+        <Button
+          title={existing ? 'Save changes' : 'Save card'}
+          icon="check"
+          loading={busy}
+          disabled={photoBusy}
+          onPress={save}
+        />
+      </Screen>
+      <Dialog
+        visible={photoSide !== null}
+        title={`Add ${photoSide === 'frontImage' ? 'front' : 'back'} photo`}
+        onClose={() => setPhotoSide(null)}
+        onDismiss={() => {
+          afterPhotoClose.current?.();
+          afterPhotoClose.current = null;
+        }}
+      >
+        <Button
+          title="Choose from library"
+          icon="photo-library"
+          onPress={() => {
+            void choosePhoto(false);
+          }}
+        />
+        <Button
+          title="Take a photo"
+          icon="photo-camera"
+          secondary
+          onPress={() => {
+            void choosePhoto(true);
+          }}
+        />
+      </Dialog>
+      <Dialog
+        visible={Boolean(pendingAction) && !leave}
+        title="Discard changes?"
+        description="Your changes haven’t been saved."
+        onClose={() => setPendingAction(null)}
+      >
+        <Button title="Keep editing" onPress={() => setPendingAction(null)} />
+        <Button
+          title="Discard changes"
+          danger
+          onPress={() => setLeave('discard')}
+        />
+      </Dialog>
+    </KeyboardAvoidingView>
+  );
+}
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#050710',
-    marginTop: 50,
-  },
-  makelonger: {
-    marginBottom: 200
-  },
-  container: {
-    padding: 24,
-    paddingBottom: 50,
-    gap: 20,
-  },
-  headerRow: {
+  colors: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    justifyContent: 'center',
+    gap: 13,
+    marginTop: -10,
   },
-  headerText: {
-    flex: 1,
-    marginBottom: 10
-  },
-  heading: {
-    fontSize: 28,
-    color: '#fff',
-    fontFamily: Fonts.rounded,
-  },
-  subheading: {
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-  },
-  backButton: {
+  color: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 2,
+    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
-  backButtonPressed: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    transform: [{ scale: 0.95 }],
-  },
-  deleteButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,0,0,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.4)',
-    marginRight: 10,
-    marginBottom: 10
-  },
-  brandBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(158,224,255,0.12)',
-    gap: 6,
-  },
-  brandBadgeText: {
-    color: '#9EE0FF',
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  cardPreview: {
-    backgroundColor: '#111428',
-    borderRadius: 26,
-    padding: 24,
-    gap: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.12)',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-  },
-  previewTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  previewTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    width: 230
-  },
-  logoImage: {
-    width: 64,
-    height: 28,
-  },
-  previewNumber: {
-    marginTop: 20,
-    color: '#fff',
-    fontSize: 22,
-    letterSpacing: 2,
-    fontFamily: Fonts.mono,
-  },
-  previewRowLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 18,
-  },
-  previewRowValues: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  expCvvLabels: {
-
-  },
-  expCvvValues: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 50,
-    marginLeft: 30
-  },
-  expirylabel: {
-    marginLeft: 70
-  },
-  previewLabel: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  previewValue: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  previewCardholder: {
-    width: 150
-  },
-  formCard: {
-    backgroundColor: '#0F1324',
-    borderRadius: 26,
-    padding: 20,
-    gap: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  formLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 13,
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: '#fff',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.2)',
-    marginTop: 2,
-    marginBottom: 10
-  },
-  ExpCvvInput: {
-    marginTop: 6,
-    marginBottom: 10
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  col: {
-    flex: 1,
-  },
-  submit: {
-    marginTop: 16,
-    backgroundColor: '#A5F276',
-    borderRadius: 18,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  submitText: {
-    color: '#050710',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(5,7,16,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: {
+  photos: { flexDirection: 'row', gap: 14 },
+  photo: {
     width: '100%',
-    backgroundColor: '#0F1324',
-    borderRadius: 24,
-    padding: 24,
+    aspectRatio: 1.586,
+    borderWidth: 1,
+    borderColor: t.border,
+    borderStyle: 'dashed',
+    borderRadius: 17,
+    backgroundColor: t.surface,
+    overflow: 'hidden',
     alignItems: 'center',
-    gap: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    gap: 8,
   },
-  modalTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  modalSubtitle: {
-    color: 'rgba(255,255,255,0.65)',
-    textAlign: 'center',
-  },
-  modalActions: {
+  remove: {
+    minHeight: 36,
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 10,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 14,
     alignItems: 'center',
-  },
-  cancelButton: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  confirmButton: {
-    backgroundColor: '#FF6B6B',
-  },
-  cancelText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  confirmText: {
-    color: '#050710',
-    fontWeight: '700',
+    justifyContent: 'center',
+    gap: 6,
   },
 });
