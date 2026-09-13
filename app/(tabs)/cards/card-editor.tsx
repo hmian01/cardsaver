@@ -104,7 +104,7 @@ function Editor({
           expiry: scan?.expiry ?? '',
           cvv: '',
           brand: detectBrand(scan?.number ?? ''),
-          variant: 'jade',
+          variant: settings.defaultCardVariant,
           note: '',
         };
   });
@@ -314,7 +314,6 @@ function Editor({
               value={form.cvv ?? ''}
               placeholder="CVV"
               keyboardType="number-pad"
-              secureTextEntry
               maxLength={4}
               onChangeText={(value) => update('cvv', value.replace(/\D/g, ''))}
               error={errors.cvv}

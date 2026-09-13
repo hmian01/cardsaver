@@ -74,7 +74,7 @@ export const createCardsStore = (storage: Storage) => {
         if (cards.some((card) => card.number === data.number))
           throw new Error('This card is already in your wallet.');
         const card = { ...data, id: createId() };
-        return { cards: [...cards, card], result: card };
+        return { cards: [card, ...cards], result: card };
       }),
     updateCard: (id: string, data: Partial<CardFormData>) =>
       mutate((cards) => {

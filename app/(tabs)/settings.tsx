@@ -10,7 +10,7 @@ import {
   ui,
 } from '@/components/ui';
 import { authenticate } from '@/components/vault-gate';
-import { theme as t } from '@/constants/theme';
+import { cardPalettes, theme as t } from '@/constants/theme';
 import { cardsStore } from '@/store/cardsStore';
 import {
   settingsStore,
@@ -18,8 +18,9 @@ import {
   type SettingsState,
 } from '@/store/settingsStore';
 import { clearCardImages } from '@/utils/cardImages';
+import { CARD_VARIANTS } from '@/utils/cardData';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -34,6 +35,7 @@ export default function SettingsScreen() {
   const settings = useSettings();
   const notify = useFeedback();
   const [name, setName] = useState(settings.defaultCardholder);
+  const nameEdited = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [resetVisible, setResetVisible] = useState(false);
@@ -41,22 +43,44 @@ export default function SettingsScreen() {
     () => setName(settings.defaultCardholder),
     [settings.defaultCardholder],
   );
-  const update = async (data: Partial<SettingsState>, verify = false) => {
-    if (busy) return;
-    setBusy(true);
-    setError('');
-    try {
-      if (verify && !(await authenticate())) return;
-      await settingsStore.update(data);
-      notify('Settings saved');
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Could not save settings. Try again.',
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
+  const update = useCallback(
+    async (
+      data: Partial<SettingsState>,
+      verify = false,
+      showFeedback = true,
+    ) => {
+      if (busy) return;
+      setBusy(true);
+      setError('');
+      try {
+        if (verify && !(await authenticate())) return;
+        await settingsStore.update(data);
+        if (showFeedback) notify('Settings saved');
+      } catch (e) {
+        setError(
+          e instanceof Error
+            ? e.message
+            : 'Could not save settings. Try again.',
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, notify],
+  );
+  useEffect(() => {
+    if (
+      !nameEdited.current ||
+      busy ||
+      name.trim() === settings.defaultCardholder
+    )
+      return;
+    const timer = setTimeout(() => {
+      nameEdited.current = false;
+      void update({ defaultCardholder: name.trim() }, false, false);
+    }, 550);
+    return () => clearTimeout(timer);
+  }, [busy, name, settings.defaultCardholder, update]);
   const resetApp = async () => {
     if (busy) return;
     setBusy(true);
@@ -120,18 +144,49 @@ export default function SettingsScreen() {
             placeholder="Your name"
             autoCapitalize="words"
             value={name}
-            onChangeText={setName}
+            onChangeText={(value) => {
+              nameEdited.current = true;
+              setName(value);
+            }}
             maxLength={100}
             editable={!busy}
           />
-          <Button
-            title="Save name"
-            secondary
-            disabled={busy || name.trim() === settings.defaultCardholder}
-            onPress={() => {
-              void update({ defaultCardholder: name.trim() });
-            }}
-          />
+          <View style={styles.divider} />
+          <View style={{ gap: 10 }}>
+            <Text style={ui.label}>Default card color</Text>
+            <View style={styles.colorChoices}>
+              {CARD_VARIANTS.map((variant) => (
+                <Pressable
+                  key={variant}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${variant} default card color`}
+                  accessibilityState={{
+                    checked: settings.defaultCardVariant === variant,
+                  }}
+                  disabled={busy}
+                  onPress={() => {
+                    void update({ defaultCardVariant: variant });
+                  }}
+                  style={({ pressed }) => [
+                    styles.colorChoice,
+                    { backgroundColor: cardPalettes[variant].background },
+                    settings.defaultCardVariant === variant && {
+                      borderColor: t.accent,
+                    },
+                    (pressed || busy) && { opacity: 0.65 },
+                  ]}
+                >
+                  {settings.defaultCardVariant === variant && (
+                    <Icon
+                      name="check"
+                      size={19}
+                      color={cardPalettes[variant].text}
+                    />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          </View>
         </View>
       </Section>
       <Section title="Your data">
@@ -259,6 +314,16 @@ function SettingsLink({
 }
 const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: t.border },
+  colorChoices: { flexDirection: 'row', gap: 10 },
+  colorChoice: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   link: {
     flexDirection: 'row',
     alignItems: 'center',

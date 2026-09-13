@@ -1,12 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
+import { CARD_VARIANTS, type CardVariant } from '@/utils/cardData';
 export type SettingsState = {
   defaultCardholder: string;
+  defaultCardVariant: CardVariant;
   biometricLockEnabled: boolean;
   hideNumbers: boolean;
 };
 const defaults: SettingsState = {
   defaultCardholder: '',
+  defaultCardVariant: 'jade',
   biometricLockEnabled: false,
   hideNumbers: true,
 };
@@ -24,6 +27,11 @@ const hydrate = async () => {
         typeof value.defaultCardholder === 'string'
           ? value.defaultCardholder
           : '',
+      defaultCardVariant: CARD_VARIANTS.includes(
+        value.defaultCardVariant as CardVariant,
+      )
+        ? (value.defaultCardVariant as CardVariant)
+        : 'jade',
       biometricLockEnabled:
         typeof value.biometricLockEnabled === 'boolean'
           ? value.biometricLockEnabled
@@ -65,6 +73,7 @@ export const settingsStore = {
         '@cardsaver/settings',
         JSON.stringify({
           defaultCardholder: next.defaultCardholder,
+          defaultCardVariant: next.defaultCardVariant,
           biometricLockEnabled: next.biometricLockEnabled,
           hideNumbers: next.hideNumbers,
         }),

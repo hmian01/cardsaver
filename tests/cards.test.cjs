@@ -234,7 +234,7 @@ test('mutations wait for hydration and preserve existing cards', async () => {
   release(JSON.stringify([card()]));
   await adding;
   assert.equal(store.getSnapshot().cards.length, 2);
-  assert.equal(store.getSnapshot().cards[0].id, 'one');
+  assert.equal(store.getSnapshot().cards[1].id, 'one');
 });
 test('queued edits and order persist across a restart', async () => {
   const storage = memory(JSON.stringify([card(), other]));
