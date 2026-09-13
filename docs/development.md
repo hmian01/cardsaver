@@ -2,7 +2,7 @@
 
 ## Data compatibility
 
-`@cardsaver/cards` remains an array of card objects. New optional fields are `note`, `frontImage`, `backImage`, and `favorite`. Existing variants remain valid; `pearl` and `lilac` are new. The array order is the wallet order. Storage mutations wait for hydration and are serialized; a failed write does not update the visible snapshot. Failed reads preserve the stored payload and expose a retry action.
+`@cardsaver/cards` remains an array of card objects. Optional fields include `note`, `frontImage`, `backImage`, `favorite`, `productId`, and `artwork`. Existing variants remain valid; `pearl` and `lilac` are new. Product IDs and artwork preferences also survive version-1 backups; see [card artwork](card-artwork.md). The array order is the wallet order. Storage mutations wait for hydration and are serialized; a failed write does not update the visible snapshot. Failed reads preserve the stored payload and expose a retry action.
 
 The versioned backup format is:
 
@@ -28,12 +28,13 @@ Photo-library/camera purpose strings live in `app.json`. Image picker microphone
 ## Validation performed
 
 - TypeScript and ESLint: pass.
-- 28 automated tests: pass.
+- 41 automated tests: pass.
 - Production Expo bundles for iOS, Android, and web: pass.
 - Xcode Debug build for the iPhone 17 simulator: pass.
 - Repeated iOS prebuild and Ruby Podfile syntax check: pass.
 - Browser workflows at phone and desktop widths: photo attachment, notes, optional CVV, favorites, search, discard/keep editing, drag reordering, restart persistence, selected export, duplicate preview, deletion, and fresh-wallet restore with embedded photos: pass.
 - Browser scanner fallback: pass; no browser runtime exceptions during the workflow checks.
+- Card artwork: all 32 designs rendered in the browser; product changes, nickname persistence, custom colors, reloads, product search, and compact artwork in reorder/export passed. The picker was also checked at 320px and the card layout at desktop width.
 - iOS app rendered the wallet in the simulator. Full native interactions were not automated; development-client onboarding/system prompts were present.
 
 Before a device release, exercise camera permissions, photo cropping, OCR with physical cards, biometric/passcode cancellation and relocking, and saving/importing a backup through the iOS and Android file providers on real devices. Android native compilation and device flows were not run in this session.

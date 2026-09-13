@@ -1,4 +1,5 @@
 import CreditCard from '@/components/creditcard';
+import { productLabel, resolveCardIdentity } from '@/utils/cardProducts';
 import { useFeedback } from '@/components/feedback';
 import {
   Button,
@@ -110,6 +111,7 @@ export default function CardDetailsScreen() {
     }
   };
   const status = expiryStatus(card.expiry);
+  const product = resolveCardIdentity(card).product;
   return (
     <Screen>
       <Header
@@ -144,10 +146,14 @@ export default function CardDetailsScreen() {
             : 'This card expires soon. Check with your issuer for a replacement.'}
         </Notice>
       )}
-      <Section
-        title="Card details"
-      >
+      <Section title="Card details">
         <View style={[ui.panel, { gap: 0, paddingVertical: 3 }]}>
+          {product && (
+            <DetailRow
+              label={product.kind === 'debit' ? 'Debit card' : 'Card product'}
+              value={productLabel(product)}
+            />
+          )}
           <DetailRow
             label="Card number"
             value={formatCardNumber(card.number)}

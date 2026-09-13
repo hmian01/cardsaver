@@ -1,0 +1,206 @@
+{
+  "retrievedAt": "2026-09-13",
+  "assets": {
+    "chime-debit": {
+      "file": "chime-debit.webp",
+      "source": "https://images.ctfassets.net/ao7gxs2zk32d/3G0oKakPM5uxLiKKL2SynH/260264dd3869e4b9ae2857a697706904/carousel_4_2x.webp",
+      "preparation": "published artwork; card face cropped by layout in constants/cardArtwork.ts"
+    },
+    "fidelity-hsa": {
+      "file": "fidelity-hsa.png",
+      "source": "https://fearthez.com/wp-content/uploads/2023/08/fidelityhsa.png",
+      "preparation": "published digital wallet artwork from third-party collection",
+      "sourcePage": "https://fearthez.com/2022/01/23/card-designs/"
+    },
+    "us-bank-business-debit": {
+      "file": "us-bank-business-debit.png",
+      "source": "https://fearthez.com/wp-content/uploads/2022/01/usbankbusinessdebit.png",
+      "preparation": "published digital wallet artwork from third-party collection",
+      "sourcePage": "https://fearthez.com/2022/01/23/card-designs/"
+    },
+    "bofa-atmos-ascent": {
+      "file": "bofa-atmos-ascent.png",
+      "source": "https://www.bankofamerica.com/content/images/ContextualSiteGraphics/CreditCardArt/en_US/Approved_PCM/1bbt_sigcm_v_atmos_ascent_250.png",
+      "preparation": "published artwork"
+    },
+    "associated-business-debit": {
+      "file": "associated-business-debit-clean.jpg",
+      "source": "https://iprsoftwaremedia.com/231/files/20222/623a2704b3aed34924e3d46d_Picture3/Picture3_0ff4d8f1-e0f2-44f8-af0d-11c435509d5d-prv.jpg?v=0ff4d8f1-e0f2-44f8-af0d-11c435509d5d",
+      "preparation": "generated landscape adaptation of rightmost silver business card in issuer photograph",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "prompt": "Use case: precise-object-edit. Asset type: clean credit/debit card background for a wallet app. Extract ONLY the rightmost silver/gray BUSINESS debit card with the green circle/tree logo, AssociatedBank wordmark and Mastercard logo. Adapt this exact design to a horizontal landscape wallet card: wordmark upper left, chip/contactless below, large green circle/tree on the left, BUSINESS in right center, Mastercard at lower right. Preserve silver gray and green colors. Do not use any of the other three card variants. No sample numbers or names. Fill removed areas seamlessly using the original surrounding pattern and texture. Output one flat frontal landscape card, 1.586:1 aspect, card filling the entire canvas edge to edge without external padding or cast shadow. No solid text panels or new data. Faithful cleaned/adapted artwork, approximately 960x608."
+    },
+    "citi-aadvantage-platinum-select": {
+      "file": "citi-aadvantage-platinum-select-clean.jpg",
+      "source": "https://aemapi.citi.com/content/dam/cfs/uspb/usmkt/cards/en/static/images/citi-aadvantage-platinum-elite-credit-card/citi-aadvantage-platinum-select-elite-credit-card_306x192.webp",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "prompt": "Use case: precise-object-edit. Asset type: clean credit/debit card background for a wallet app. Remove only the sample cardholder name LINDA WALKER. Keep exactly the Citi logo, American Airlines AAdvantage logo, Platinum Select text, Mastercard logo, chip/contactless symbol, gray topographic map pattern and bird details. Fill removed areas seamlessly using the original surrounding pattern and texture. Output one flat frontal landscape card, 1.586:1 aspect, card filling the entire canvas edge to edge without external padding or cast shadow. No solid text panels or new data. Faithful cleaned/adapted artwork, approximately 960x608."
+    },
+    "amex-white-gold": {
+      "file": "amex-white-gold-clean.jpg",
+      "source": "https://icm.aexp-static.com/Internet/Acquisition/US_en/AppContent/OneSite/credit-cards/rubiks/white-gold.png",
+      "preparation": "generated White Gold finish adaptation from cleaned Amex Gold and official White Gold color swatch; not an official flat card image",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "prompt": "Use case: precise-object-edit. Asset type: clean credit/debit card background for a wallet app. Image 1 is the edit target, an already clean Amex Gold face. Image 2 is the official White Gold finish swatch reference. Change ONLY the metallic finish of image 1 from yellow gold to pale champagne ivory/white gold matching image 2. Keep exactly the American Express wordmark, centurion portrait, ornamental border, chip, contactless and guilloche pattern in their original positions. Use lighter champagne engraving characteristic of White Gold, distinct from both yellow Gold and gray Platinum. No new text or personalization. Fill removed areas seamlessly using the original surrounding pattern and texture. Output one flat frontal landscape card, 1.586:1 aspect, card filling the entire canvas edge to edge without external padding or cast shadow. No solid text panels or new data. Faithful cleaned/adapted artwork, approximately 960x608.",
+      "supportingSource": "https://icm.aexp-static.com/Internet/Acquisition/US_en/AppContent/OneSite/category/cardarts/gold-card.png"
+    },
+    "sofi-debit": {
+      "file": "sofi-debit.png",
+      "source": "https://d32ijn7u0aqfv4.cloudfront.net/wp/wp-content/uploads/raw/debit_card_module1_desktop%402x.png",
+      "preparation": "published artwork; card face cropped by layout in constants/cardArtwork.ts"
+    },
+    "chase-prime-visa": {
+      "file": "chase-prime-visa-clean.jpg",
+      "source": "https://creditcards.chase.com/content/dam/jpmc-marketplace/card-art/prime-visa.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "prompt": "Use case: precise-object-edit. Asset type: clean credit/debit card background for a wallet app. Remove all placeholder personalization: D. BARRETT, BARRETT CONNECT, C F FROST, REXPORT INC, AMAZON CUSTOMER, sample digits 7997, MEMBER SINCE and year. For Prime remove the diagonal NO ANNUAL FEE marketing ribbon too and restore the original navy texture beneath. Preserve original issuer/product and Visa/Mastercard logos, chip, contactless symbol, background pattern and colors. Fill removed areas seamlessly using the original surrounding pattern and texture. Output one flat frontal landscape card, 1.586:1 aspect, card filling the entire canvas edge to edge without external padding or cast shadow. No solid text panels or new data. Faithful cleaned/adapted artwork, approximately 960x608."
+    },
+    "chase-debit": {
+      "file": "chase-debit-clean.jpg",
+      "source": "https://www.chase.com/content/services/structured-image/image.mobile.png/chase-ux/bucket/secondary/digital/accepted-cards/card_debit.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "chase-business-debit": {
+      "file": "chase-business-debit-clean.jpg",
+      "source": "https://www.chase.com/content/services/structured-image/image.mobile.png/chase-ux/bucket/secondary/digital/accepted-cards/card_debit_biz.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "chase-freedom-unlimited": {
+      "file": "chase-freedom-unlimited-clean.jpg",
+      "source": "https://www.chase.com/content/services/structured-image/image.mobile.png/chase-ux/bucket/secondary/digital/accepted-cards/card_freedom_ultd.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "chase-freedom-flex": {
+      "file": "chase-freedom-flex-clean.jpg",
+      "source": "https://www.chase.com/content/services/structured-image/image.mobile.png/chase-ux/bucket/secondary/digital/accepted-cards/card_freedom_flex.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "prompt": "Use case: precise-object-edit. Asset type: clean credit/debit card background for a wallet app. Remove all placeholder personalization: D. BARRETT, BARRETT CONNECT, C F FROST, REXPORT INC, AMAZON CUSTOMER, sample digits 7997, MEMBER SINCE and year. For Prime remove the diagonal NO ANNUAL FEE marketing ribbon too and restore the original navy texture beneath. Preserve original issuer/product and Visa/Mastercard logos, chip, contactless symbol, background pattern and colors. Fill removed areas seamlessly using the original surrounding pattern and texture. Output one flat frontal landscape card, 1.586:1 aspect, card filling the entire canvas edge to edge without external padding or cast shadow. No solid text panels or new data. Faithful cleaned/adapted artwork, approximately 960x608."
+    },
+    "chase-ink-unlimited": {
+      "file": "chase-ink-unlimited-clean.jpg",
+      "source": "https://creditcards.chase.com/content/dam/jpmc-marketplace/card-art/ink_unlimited_card.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "chase-ink-cash": {
+      "file": "chase-ink-cash-clean.jpg",
+      "source": "https://creditcards.chase.com/content/dam/jpmc-marketplace/card-art/ink_cash_card.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "chase-ink-preferred": {
+      "file": "chase-ink-preferred-clean.jpg",
+      "source": "https://creditcards.chase.com/content/dam/jpmc-marketplace/card-art/ink_preferred_card.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "chase-ink-premier": {
+      "file": "chase-ink-premier-clean.jpg",
+      "source": "https://creditcards.chase.com/content/dam/jpmc-marketplace/card-art/ink_business_premier_card.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "prompt": "Use case: precise-object-edit. Asset type: clean credit/debit card background for a wallet app. Remove all placeholder personalization: D. BARRETT, BARRETT CONNECT, C F FROST, REXPORT INC, AMAZON CUSTOMER, sample digits 7997, MEMBER SINCE and year. For Prime remove the diagonal NO ANNUAL FEE marketing ribbon too and restore the original navy texture beneath. Preserve original issuer/product and Visa/Mastercard logos, chip, contactless symbol, background pattern and colors. Fill removed areas seamlessly using the original surrounding pattern and texture. Output one flat frontal landscape card, 1.586:1 aspect, card filling the entire canvas edge to edge without external padding or cast shadow. No solid text panels or new data. Faithful cleaned/adapted artwork, approximately 960x608."
+    },
+    "wells-fargo-debit": {
+      "file": "wells-fargo-debit-clean.jpg",
+      "source": "https://www17.wellsfargomedia.com/assets/images/contextual/responsive/card/debit-card/digital_wallet-consumer-cards-740x740.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "wells-fargo-business-debit": {
+      "file": "wells-fargo-business-debit-clean.jpg",
+      "source": "https://www17.wellsfargomedia.com/assets/images/small-business/business-debit/digital_wallet-biz_cards-740x740.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "chase-sapphire-preferred": {
+      "file": "chase-sapphire-preferred.png",
+      "source": "https://creditcards.chase.com/content/dam/jpmc-marketplace/card-art/sapphire-preferredcard2026.png",
+      "preparation": "published artwork"
+    },
+    "chase-sapphire-reserve": {
+      "file": "chase-sapphire-reserve.png",
+      "source": "https://creditcards.chase.com/content/dam/jpmc-marketplace/card-art/sapphire_reserve_card_Halo.png",
+      "preparation": "published artwork"
+    },
+    "capital-one-venture": {
+      "file": "capital-one-venture.png",
+      "source": "https://ecm.capitalone.com/WCM/card/products/venture_cardart_prim_323x203-1.png",
+      "preparation": "published artwork"
+    },
+    "capital-one-venture-x": {
+      "file": "capital-one-venture-x.png",
+      "source": "https://ecm.capitalone.com/WCM/card/products/venture-x-card-art.png",
+      "preparation": "published artwork"
+    },
+    "capital-one-ventureone": {
+      "file": "capital-one-ventureone.png",
+      "source": "https://ecm.capitalone.com/WCM/card/products/ventureone_cardart_prim_323x203.png",
+      "preparation": "published artwork"
+    },
+    "capital-one-quicksilver": {
+      "file": "capital-one-quicksilver.png",
+      "source": "https://ecm.capitalone.com/WCM/card/products/quicksilver_cardart.png",
+      "preparation": "published artwork"
+    },
+    "capital-one-savor": {
+      "file": "capital-one-savor.png",
+      "source": "https://ecm.capitalone.com/WCM/card/products/new-savor-card-art.png",
+      "preparation": "published artwork"
+    },
+    "capital-one-savorone": {
+      "file": "capital-one-savorone.png",
+      "source": "https://ecm.capitalone.com/WCM/card/products/savorone-2025-cardart.png",
+      "preparation": "published artwork"
+    },
+    "amex-gold": {
+      "file": "amex-gold-clean.jpg",
+      "source": "https://icm.aexp-static.com/Internet/Acquisition/US_en/AppContent/OneSite/category/cardarts/gold-card.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "amex-platinum": {
+      "file": "amex-platinum-clean.jpg",
+      "source": "https://icm.aexp-static.com/Internet/Acquisition/US_en/AppContent/OneSite/category/cardarts/platinum-card.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "prompt": "Use case: precise-object-edit. Asset type: clean credit/debit card background for a wallet app. Remove all placeholder personalization: D. BARRETT, BARRETT CONNECT, C F FROST, REXPORT INC, AMAZON CUSTOMER, sample digits 7997, MEMBER SINCE and year. For Prime remove the diagonal NO ANNUAL FEE marketing ribbon too and restore the original navy texture beneath. Preserve original issuer/product and Visa/Mastercard logos, chip, contactless symbol, background pattern and colors. Fill removed areas seamlessly using the original surrounding pattern and texture. Output one flat frontal landscape card, 1.586:1 aspect, card filling the entire canvas edge to edge without external padding or cast shadow. No solid text panels or new data. Faithful cleaned/adapted artwork, approximately 960x608."
+    },
+    "amex-blue-business-plus": {
+      "file": "amex-blue-business-plus-clean.jpg",
+      "source": "https://icm.aexp-static.com/Internet/Acquisition/US_en/AppContent/OneSite/open/category/cardarts/blue-business-plus.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    },
+    "amex-blue-business-cash": {
+      "file": "amex-blue-business-cash-clean.jpg",
+      "source": "https://icm.aexp-static.com/Internet/Acquisition/US_en/AppContent/OneSite/open/category/cardarts/blue-business-cash.png",
+      "preparation": "imagegen edit of public reference",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "prompt": "Use case: precise-object-edit. Asset type: clean credit/debit card background for a wallet app. Remove all placeholder personalization: D. BARRETT, BARRETT CONNECT, C F FROST, REXPORT INC, AMAZON CUSTOMER, sample digits 7997, MEMBER SINCE and year. For Prime remove the diagonal NO ANNUAL FEE marketing ribbon too and restore the original navy texture beneath. Preserve original issuer/product and Visa/Mastercard logos, chip, contactless symbol, background pattern and colors. Fill removed areas seamlessly using the original surrounding pattern and texture. Output one flat frontal landscape card, 1.586:1 aspect, card filling the entire canvas edge to edge without external padding or cast shadow. No solid text panels or new data. Faithful cleaned/adapted artwork, approximately 960x608."
+    },
+    "capital-one-debit": {
+      "file": "capital-one-debit-flat.jpg",
+      "source": "https://ecm.capitalone.com/WCM/bank/checking-accounts/360-checking/debit-card/debit-card-hero/feature-page-refresh-batch-2---zelle-and-debit-card-mobile-nfod-2025-5758301-mech--debitcard-b1.a-d/rdesktop.jpg",
+      "preparation": "generated flat extraction of debit card from official photograph",
+      "generationMode": "built-in image_gen edit; resized to 960px maximum dimension and encoded as JPEG at quality 88",
+      "promptSummary": "Extract a flat front-facing landscape card at 1.586:1, filling the canvas. Remove placeholder name, company, numbers, expiry, CID, and member-since data; reconstruct the original texture. Preserve issuer/product/network logos, chip, contactless symbol, color and pattern. No panels or new personalization."
+    }
+  }
+}

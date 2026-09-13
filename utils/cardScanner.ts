@@ -1,7 +1,9 @@
 import { looksLikeCardNumber, normalizeExpiry } from './cardNumber';
+import { detectCardProduct } from './cardProducts';
 export function extractCardData(text: string): {
   number?: string;
   expiry?: string;
+  productId?: string;
 } {
   // Examine individual lines first, then a flattened segment for cards split over lines.
   const segments = [...text.split('\n'), text.replace(/\n/g, ' ')];
@@ -23,5 +25,6 @@ export function extractCardData(text: string): {
       }
     }
   }
-  return { number, expiry };
+  const product = detectCardProduct(text, number);
+  return { number, expiry, ...(product ? { productId: product.id } : {}) };
 }

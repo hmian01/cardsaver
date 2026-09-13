@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Modal,
   Pressable,
   ScrollView,
@@ -260,6 +262,8 @@ export function Dialog({
   description,
   onClose,
   onDismiss,
+  avoidKeyboard = false,
+  contentStyle,
   children,
 }: React.PropsWithChildren<{
   visible: boolean;
@@ -267,6 +271,8 @@ export function Dialog({
   description?: string;
   onClose: () => void;
   onDismiss?: () => void;
+  avoidKeyboard?: boolean;
+  contentStyle?: ViewStyle;
 }>) {
   const vaultVisible = useVaultVisible();
   return (
@@ -277,13 +283,17 @@ export function Dialog({
       onRequestClose={onClose}
       onDismiss={onDismiss}
     >
-      <View style={ui.scrim}>
+      <KeyboardAvoidingView
+        enabled={avoidKeyboard}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={ui.scrim}
+      >
         <Pressable
           style={StyleSheet.absoluteFill}
           accessibilityLabel="Close dialog"
           onPress={onClose}
         />
-        <View accessibilityViewIsModal style={ui.dialog}>
+        <View accessibilityViewIsModal style={[ui.dialog, contentStyle]}>
           <View style={ui.rowBetween}>
             <Text style={[ui.sectionTitle, { flex: 1 }]}>{title}</Text>
             <IconButton icon="close" label="Close dialog" onPress={onClose} />
@@ -291,7 +301,7 @@ export function Dialog({
           {description && <Text style={ui.body}>{description}</Text>}
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -1,4 +1,5 @@
 import { detectBrand, normalizeExpiry, sanitizeCardNumber } from './cardNumber';
+import { productLabel, resolveCardIdentity } from './cardProducts';
 export const CARD_VARIANTS = [
   'midnight',
   'sunset',
@@ -20,6 +21,8 @@ export type StoredCard = {
   frontImage?: string;
   backImage?: string;
   favorite?: boolean;
+  productId?: string;
+  artwork?: 'auto' | 'color';
 };
 export type CardFormData = Omit<StoredCard, 'id'>;
 export const MAX_BACKUP_BYTES = 25 * 1024 * 1024;
@@ -73,6 +76,18 @@ export const parseCard = (value: unknown, portable = false): StoredCard => {
     throw new Error('Card notes must be under 2,000 characters.');
   if (value.favorite !== undefined && typeof value.favorite !== 'boolean')
     throw new Error('A card has an invalid favorite value.');
+  if (
+    value.productId !== undefined &&
+    (typeof value.productId !== 'string' ||
+      !/^[a-z0-9-]{1,80}$/.test(value.productId))
+  )
+    throw new Error('A card has an invalid product.');
+  if (
+    value.artwork !== undefined &&
+    value.artwork !== 'auto' &&
+    value.artwork !== 'color'
+  )
+    throw new Error('A card has an invalid design preference.');
   for (const key of ['frontImage', 'backImage']) {
     if (
       value[key] !== undefined &&
@@ -94,6 +109,8 @@ export const parseCard = (value: unknown, portable = false): StoredCard => {
     ...(value.frontImage ? { frontImage: value.frontImage as string } : {}),
     ...(value.backImage ? { backImage: value.backImage as string } : {}),
     favorite: value.favorite === true,
+    ...(value.productId ? { productId: value.productId as string } : {}),
+    ...(value.artwork ? { artwork: value.artwork as 'auto' | 'color' } : {}),
   };
 };
 export const parseStoredCards = (value: unknown) => {
@@ -173,11 +190,13 @@ export const reorderCards = (cards: StoredCard[], ids: string[]) => {
 export const matchesCard = (card: StoredCard, search: string) => {
   const query = search.trim().toLowerCase();
   if (!query) return true;
+  const product = resolveCardIdentity(card).product;
   const fields = [
     card.description,
     card.cardholder,
     card.brand,
     card.note ?? '',
+    product ? productLabel(product) : '',
   ]
     .join(' ')
     .toLowerCase();

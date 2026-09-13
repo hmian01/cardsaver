@@ -7,6 +7,7 @@ A wallet for keeping card details, photos, and notes close at hand. Built with E
 ## What’s included
 
 - A refreshed wallet with five card colors, favorites, search, and expiry filters.
+- Automatic card product matching with 32 bundled designs, plus a searchable design picker. Artwork follows each card through the wallet, details, editor, reorder, and export screens.
 - Optional front/back photos from the camera or photo library, plus a note on each card.
 - Card details with reveal/hide controls and individual copy actions.
 - Drag-to-reorder, accessible move buttons, and an order that survives app restarts.
@@ -37,7 +38,7 @@ iOS requires Xcode and CocoaPods; Android requires the Android SDK. The scanner 
 
 ## Using your wallet
 
-**Add a card:** tap **+**, enter its details, choose a color, and optionally attach front/back photos or a note. Cardholder and security code are optional.
+**Add a card:** tap **+**, enter its details, and optionally attach front/back photos or a note. Cardholder and security code are optional. A recognized product name or scanned product text selects its artwork automatically. Tap **Change card design** to choose a product or a custom color; your choice survives nickname changes and backups. Card numbers identify the payment network, but cannot reliably identify the exact product. See [card artwork](docs/card-artwork.md) for supported designs and sources.
 
 **Arrange cards:** tap the reorder button beside the wallet filters. Hold a row to drag it, or use the arrows, then tap **Save order**. Search and favorites never change the saved order.
 

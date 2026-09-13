@@ -1,8 +1,17 @@
 import { cardPalettes, Fonts, theme as t } from '@/constants/theme';
+import { CARD_ARTWORK } from '@/constants/cardArtwork';
 import type { CardFormData } from '@/store/cardsStore';
-import { expiryStatus, formatCardNumber } from '@/utils/cardNumber';
+import {
+  brandLabel,
+  expiryStatus,
+  formatCardNumber,
+  sanitizeCardNumber,
+} from '@/utils/cardNumber';
+import { productLabel, resolveCardIdentity } from '@/utils/cardProducts';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Icon } from './ui';
+import CardArtwork from './card-artwork';
 
 type Props = CardFormData & {
   revealed?: boolean;
@@ -25,19 +34,160 @@ export default function CreditCard({
   compact = false,
   onFavoritePress,
   favoriteDisabled = false,
+  productId,
+  artwork,
 }: Props) {
+  const identity = resolveCardIdentity({
+    number,
+    description,
+    productId,
+    artwork,
+  });
+  const [failedArt, setFailedArt] = useState<string>();
+  const [artWidth, setArtWidth] = useState(320);
+  const product = identity.product;
+  const art =
+    product && identity.useArtwork && failedArt !== product.id
+      ? CARD_ARTWORK[product.id]
+      : undefined;
+  const digits = sanitizeCardNumber(number);
+  brand = identity.network;
   const p = cardPalettes[variant] ?? cardPalettes.jade;
   const status = expiry ? expiryStatus(expiry) : 'valid';
   const hasMetadata = Boolean(
     frontImage || backImage || note || status !== 'valid',
   );
+  if (product && art) {
+    const artText = {
+      color: product.light ? '#000000' : '#FFFFFF',
+      fontWeight: '700' as const,
+    };
+    const displayNumber = revealed
+      ? formatCardNumber(digits) || '••••  ••••  ••••  ••••'
+      : `••••  ${digits.slice(-4) || '••••'}`;
+    // Web does not resize Text with adjustsFontSizeToFit. Size the number to its
+    // measured space as well so longer PANs stay complete beside printed logos.
+    const numberSpace = artWidth - 19 - (art.numberRight ?? 19) - 4;
+    const numberFontSize = Math.min(
+      19,
+      (numberSpace - displayNumber.length) / (displayNumber.length * 0.63),
+    );
+    const background = (
+      <CardArtwork product={product} onError={() => setFailedArt(product.id)} />
+    );
+    if (compact)
+      return (
+        <View style={[styles.mini, { backgroundColor: product.background }]}>
+          {background}
+          <View style={styles.miniArtDetails}>
+            <Text style={[styles.miniNumber, artText]}>{digits.slice(-4)}</Text>
+          </View>
+        </View>
+      );
+    return (
+      <View style={styles.artWrapper}>
+        <View
+          onLayout={(event) => setArtWidth(event.nativeEvent.layout.width)}
+          style={[styles.artCard, { backgroundColor: product.background }]}
+        >
+          {background}
+          <Text
+            style={[
+              styles.artNumber,
+              artText,
+              {
+                fontSize: numberFontSize,
+                position: 'absolute',
+                top: art.numberTop ?? (art.hasNetworkLogo ? '60%' : '72%'),
+                left: 19,
+                right: art.numberRight ?? 19,
+              },
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.65}
+          >
+            {displayNumber}
+          </Text>
+          <View style={styles.artDetails}>
+            <View style={styles.artBottom}>
+              <Text
+                style={[styles.artHolder, artText, { flex: 1 }]}
+                numberOfLines={1}
+              >
+                {cardholder || 'Your name'}
+              </Text>
+              <Text style={[styles.artExpiry, artText]}>
+                {expiry || 'MM/YY'}
+              </Text>
+              {art.hasNetworkLogo ? (
+                <View style={{ width: '28%' }} />
+              ) : (
+                <Text style={[styles.artNetwork, artText]}>
+                  {brand === 'AMEX' ? 'AMEX' : brandLabel(brand)}
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+        <View style={styles.artCaption}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.artTitle} numberOfLines={1}>
+              {description || productLabel(product)}
+            </Text>
+            <Text style={styles.artSubtitle} numberOfLines={1}>
+              {description === productLabel(product)
+                ? `${brandLabel(brand)} · ${product.kind === 'debit' ? 'Debit' : 'Credit'}`
+                : productLabel(product)}
+            </Text>
+          </View>
+          {hasMetadata && (
+            <View style={styles.metadata}>
+              {(frontImage || backImage) && (
+                <Icon name="photo-library" size={14} color={t.muted} />
+              )}
+              {note && <Icon name="notes" size={14} color={t.muted} />}
+              {status !== 'valid' && (
+                <Text style={[styles.metaText, { color: t.warning }]}>
+                  {status === 'expired' ? 'Expired' : 'Expires soon'}
+                </Text>
+              )}
+            </View>
+          )}
+          {onFavoritePress ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                favorite ? 'Remove from favorites' : 'Add to favorites'
+              }
+              accessibilityState={{ disabled: favoriteDisabled }}
+              disabled={favoriteDisabled}
+              onPress={onFavoritePress}
+              style={({ pressed }) => [
+                styles.artFavorite,
+                (pressed || favoriteDisabled) && { opacity: 0.55 },
+              ]}
+            >
+              <Icon
+                name={favorite ? 'star' : 'star-border'}
+                size={23}
+                color={favorite ? t.warning : t.muted}
+              />
+            </Pressable>
+          ) : favorite ? (
+            <Icon name="star" color={t.warning} size={20} />
+          ) : null}
+        </View>
+      </View>
+    );
+  }
   if (compact)
     return (
       <View style={[styles.mini, { backgroundColor: p.background }]}>
         <View style={[styles.miniRing, { borderColor: p.accent }]} />
         <Icon name="credit-card" size={20} color={p.text} />
         <Text style={[styles.miniNumber, { color: p.text }]}>
-          {number.slice(-4)}
+          {digits.slice(-4)}
         </Text>
       </View>
     );
@@ -63,7 +213,7 @@ export default function CreditCard({
               {note && <Icon name="notes" size={14} color={p.muted} />}
               {status !== 'valid' && (
                 <>
-                  <Text style={[styles.metaText, { color: p.muted }]}> 
+                  <Text style={[styles.metaText, { color: p.muted }]}>
                     {status === 'expired' ? 'Expired' : 'Expires soon'}
                   </Text>
                   <View style={styles.metaDot} />
@@ -145,6 +295,66 @@ export default function CreditCard({
   );
 }
 const styles = StyleSheet.create({
+  artWrapper: { gap: 12 },
+  artCard: {
+    width: '100%',
+    aspectRatio: 1.586,
+    minHeight: 190,
+    maxHeight: 340,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  artDetails: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 19,
+    paddingVertical: 12,
+    justifyContent: 'flex-end',
+    gap: 9,
+  },
+  artNumber: { fontSize: 19, fontFamily: Fonts.mono, letterSpacing: 1 },
+  artBottom: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  artHolder: {
+    fontSize: 10,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+  artExpiry: { fontFamily: Fonts.mono, fontSize: 10 },
+  artNetwork: { fontSize: 12, fontWeight: '800', fontStyle: 'italic' },
+  artCaption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 3,
+  },
+  artTitle: {
+    color: t.text,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  artSubtitle: { color: t.muted, fontSize: 11 },
+  artFavorite: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniArtDetails: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 5,
+    paddingBottom: 3,
+  },
   card: {
     width: '100%',
     aspectRatio: 1.62,

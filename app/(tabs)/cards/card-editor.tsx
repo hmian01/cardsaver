@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import CreditCard from '@/components/creditcard';
+import CardDesignPicker from '@/components/card-design-picker';
 import { useFeedback } from '@/components/feedback';
 import {
   Button,
@@ -29,7 +30,7 @@ import {
   Section,
   ui,
 } from '@/components/ui';
-import { cardPalettes, theme as t } from '@/constants/theme';
+import { theme as t } from '@/constants/theme';
 import {
   cardsStore,
   useCards,
@@ -38,7 +39,12 @@ import {
 } from '@/store/cardsStore';
 import { takeScanDraft } from '@/store/scanDraft';
 import { useSettings } from '@/store/settingsStore';
-import { CARD_VARIANTS } from '@/utils/cardData';
+import {
+  getCardProduct,
+  productLabel,
+  productSupportsNumber,
+  resolveCardIdentity,
+} from '@/utils/cardProducts';
 import {
   imageUri,
   materializeImages,
@@ -96,9 +102,16 @@ function Editor({
   const [initial] = useState<CardFormData>(() => {
     const scan = existing ? undefined : takeScanDraft();
     return existing
-      ? { ...existing, number: formatCardNumber(existing.number) }
+      ? {
+          ...existing,
+          number: formatCardNumber(existing.number),
+          productId:
+            existing.productId ?? resolveCardIdentity(existing).product?.id,
+        }
       : {
-          description: suggestedName,
+          description: getCardProduct(scan?.productId)
+            ? productLabel(getCardProduct(scan?.productId)!)
+            : suggestedName,
           cardholder: settings.defaultCardholder,
           number: formatCardNumber(scan?.number ?? ''),
           expiry: scan?.expiry ?? '',
@@ -106,10 +119,11 @@ function Editor({
           brand: detectBrand(scan?.number ?? ''),
           variant: settings.defaultCardVariant,
           note: '',
+          productId: scan?.productId,
+          artwork: 'auto',
         };
   });
   const [form, setForm] = useState(initial);
-  const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [errors, setErrors] = useState<
     Partial<Record<keyof CardFormData, string>>
   >({});
@@ -146,7 +160,18 @@ function Editor({
     key: K,
     value: CardFormData[K],
   ) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      const product = getCardProduct(current.productId);
+      return {
+        ...current,
+        [key]: value,
+        ...(key === 'number' &&
+        product &&
+        !productSupportsNumber(product, value as string)
+          ? { productId: undefined }
+          : {}),
+      };
+    });
     setErrors((current) => ({ ...current, [key]: undefined }));
   };
   const choosePhoto = async (camera: boolean) => {
@@ -194,6 +219,7 @@ function Editor({
         cvv: form.cvv?.trim() || undefined,
         note: form.note?.trim() || undefined,
         brand: detectBrand(form.number),
+        productId: form.productId ?? resolveCardIdentity(form).product?.id,
       };
       const materialized = await materializeImages(data);
       created = materialized.created;
@@ -230,29 +256,7 @@ function Editor({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Screen>
-        <Header
-          title={existing ? 'Edit card' : 'Add a card'}
-          right={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Choose card color"
-              accessibilityHint="Opens the card color picker"
-              disabled={busy}
-              onPress={() => setColorPickerVisible(true)}
-              style={({ pressed }) => [
-                styles.colorTrigger,
-                { backgroundColor: cardPalettes[form.variant].background },
-                (pressed || busy) && { opacity: 0.65 },
-              ]}
-            >
-              <Icon
-                name="palette"
-                color={cardPalettes[form.variant].text}
-                size={20}
-              />
-            </Pressable>
-          }
-        />
+        <Header title={existing ? 'Edit card' : 'Add a card'} />
         <CreditCard
           {...form}
           brand={detectBrand(form.number)}
@@ -260,11 +264,18 @@ function Editor({
           favoriteDisabled={busy}
           onFavoritePress={() => update('favorite', !form.favorite)}
         />
+        <CardDesignPicker
+          form={form}
+          disabled={busy}
+          onChange={(changes) =>
+            setForm((current) => ({ ...current, ...changes }))
+          }
+        />
         {error ? <Notice error>{error}</Notice> : null}
         <Section title="The essentials">
           <Field
             label="Card name"
-            placeholder="e.g. Everyday Visa"
+            placeholder="e.g. Chase Sapphire Preferred"
             value={form.description}
             onChangeText={(value) => update('description', value)}
             maxLength={80}
@@ -397,41 +408,8 @@ function Editor({
           onPress={save}
         />
       </Screen>
-        <Dialog
-          visible={colorPickerVisible}
-          title="Card color"
-          onClose={() => setColorPickerVisible(false)}
-        >
-          <View style={styles.colorPicker}>
-            {CARD_VARIANTS.map((variant) => (
-              <Pressable
-                key={variant}
-                accessibilityRole="radio"
-                accessibilityLabel={`${variant} card color`}
-                accessibilityState={{ checked: form.variant === variant }}
-                onPress={() => {
-                  update('variant', variant);
-                  setColorPickerVisible(false);
-                }}
-                style={[
-                  styles.colorOption,
-                  { backgroundColor: cardPalettes[variant].background },
-                  form.variant === variant && { borderColor: t.accent },
-                ]}
-              >
-                {form.variant === variant && (
-                  <Icon
-                    name="check"
-                    color={cardPalettes[variant].text}
-                    size={19}
-                  />
-                )}
-              </Pressable>
-            ))}
-          </View>
-        </Dialog>
-        <Dialog
-          visible={photoSide !== null}
+      <Dialog
+        visible={photoSide !== null}
         title={`Add ${photoSide === 'frontImage' ? 'front' : 'back'} photo`}
         onClose={() => setPhotoSide(null)}
         onDismiss={() => {
@@ -472,30 +450,6 @@ function Editor({
   );
 }
 const styles = StyleSheet.create({
-  colorTrigger: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: t.border,
-  },
-  colorPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 13,
-  },
-  colorOption: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   photos: { flexDirection: 'row', gap: 14 },
   photo: {
     width: '100%',

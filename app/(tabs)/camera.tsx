@@ -1,7 +1,8 @@
 import { Button, Icon, IconButton, Notice, Screen, ui } from '@/components/ui';
 import { useVaultVisible } from '@/components/vault-gate';
 import { theme as t } from '@/constants/theme';
-import { setScanDraft } from '@/store/scanDraft';
+import { setScanDraft, type ScanDraft } from '@/store/scanDraft';
+import { getCardProduct, productLabel } from '@/utils/cardProducts';
 import { brandLabel, detectBrand, formatCardNumber } from '@/utils/cardNumber';
 import { extractCardData } from '@/utils/cardScanner';
 import { useIsFocused } from '@react-navigation/native';
@@ -29,16 +30,14 @@ export default function CameraScreen() {
   const cameraReady = useRef(false);
   const [ready, setReady] = useState(false);
   const [torch, setTorch] = useState(false);
-  const [detected, setDetected] = useState<{
-    number: string;
-    expiry?: string;
-  } | null>(null);
+  const [detected, setDetected] = useState<ScanDraft | null>(null);
   const [error, setError] = useState('');
   const [hits, setHits] = useState(0);
   const buffer = useRef<{
     number: string;
     hits: number;
     expiry?: string;
+    productId?: string;
   } | null>(null);
   const processing = useRef(false);
   const supported = Boolean(ocr?.isSupported());
@@ -72,20 +71,27 @@ export default function CameraScreen() {
         if (canceled) return;
         const candidate = extractCardData(result.text ?? '');
         setError('');
-        if (candidate.number) {
+        if (candidate.number || candidate.productId) {
+          const number = candidate.number ?? '';
           buffer.current =
-            buffer.current?.number === candidate.number
+            buffer.current &&
+            (number
+              ? buffer.current.number === number
+              : !buffer.current.number &&
+                buffer.current.productId === candidate.productId)
               ? {
                   ...buffer.current,
                   hits: buffer.current.hits + 1,
                   expiry: candidate.expiry ?? buffer.current.expiry,
+                  productId: candidate.productId ?? buffer.current.productId,
                 }
-              : { number: candidate.number, hits: 1, expiry: candidate.expiry };
+              : { ...candidate, number, hits: 1 };
           setHits(buffer.current.hits);
           if (buffer.current.hits >= 2) {
             setDetected({
-              number: candidate.number,
+              number,
               expiry: buffer.current.expiry,
+              productId: buffer.current.productId,
             });
             void Haptics.notificationAsync(
               Haptics.NotificationFeedbackType.Success,
@@ -229,7 +235,20 @@ export default function CameraScreen() {
               {brandLabel(detectBrand(detected.number))}
             </Text>
           </View>
-          <Text style={styles.number}>{formatCardNumber(detected.number)}</Text>
+          {detected.number ? (
+            <Text style={styles.number}>
+              {formatCardNumber(detected.number)}
+            </Text>
+          ) : (
+            <Text style={ui.body}>
+              Design found. Add the number from the back when you review.
+            </Text>
+          )}
+          {getCardProduct(detected.productId) && (
+            <Text style={ui.body}>
+              {productLabel(getCardProduct(detected.productId)!)}
+            </Text>
+          )}
           {detected.expiry && (
             <Text style={ui.body}>Expires {detected.expiry}</Text>
           )}

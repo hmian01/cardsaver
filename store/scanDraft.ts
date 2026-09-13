@@ -1,4 +1,5 @@
-let draft: { number: string; expiry?: string } | undefined;
+export type ScanDraft = { number: string; expiry?: string; productId?: string };
+let draft: ScanDraft | undefined;
 export const setScanDraft = (value: typeof draft) => {
   draft = value;
 };
