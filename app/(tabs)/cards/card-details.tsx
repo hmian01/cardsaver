@@ -1,8 +1,24 @@
-import { useFocusEffect } from '@react-navigation/native';
+import CreditCard from '@/components/creditcard';
+import { useFeedback } from '@/components/feedback';
+import {
+  Button,
+  Dialog,
+  EmptyState,
+  Header,
+  Icon,
+  Notice,
+  Screen,
+  Section,
+  ui,
+} from '@/components/ui';
+import { Fonts, theme as t } from '@/constants/theme';
+import { cardsStore, useCards } from '@/store/cardsStore';
+import { imageUri, removeImages } from '@/utils/cardImages';
+import { expiryStatus, formatCardNumber } from '@/utils/cardNumber';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -12,25 +28,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import CreditCard from '@/components/creditcard';
-import { useFeedback } from '@/components/feedback';
-import {
-  Button,
-  Dialog,
-  EmptyState,
-  Header,
-  Icon,
-  IconButton,
-  Notice,
-  Screen,
-  Section,
-  ui,
-} from '@/components/ui';
-import { Fonts, theme as t } from '@/constants/theme';
-import { cardsStore, useCards } from '@/store/cardsStore';
-import { useVaultVisible } from '@/store/vaultSession';
-import { imageUri, removeImages } from '@/utils/cardImages';
-import { expiryStatus, formatCardNumber } from '@/utils/cardNumber';
 
 export default function CardDetailsScreen() {
   const router = useRouter();
@@ -38,27 +35,10 @@ export default function CardDetailsScreen() {
   const { cards, loading, error: loadError } = useCards();
   const card = cards.find((item) => item.id === cardId);
   const notify = useFeedback();
-  const [revealed, setRevealed] = useState(false);
   const [photo, setPhoto] = useState<'frontImage' | 'backImage' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const vaultVisible = useVaultVisible();
-  useEffect(() => {
-    if (!vaultVisible) {
-      setRevealed(false);
-      setPhoto(null);
-    }
-  }, [vaultVisible]);
-  useFocusEffect(
-    useCallback(
-      () => () => {
-        setRevealed(false);
-        setPhoto(null);
-      },
-      [],
-    ),
-  );
   if (loading)
     return (
       <Screen>
@@ -135,37 +115,27 @@ export default function CardDetailsScreen() {
       <Header
         title="Card details"
         right={
-          <IconButton
-            icon={card.favorite ? 'star' : 'star-border'}
-            label={card.favorite ? 'Remove from favorites' : 'Add to favorites'}
-            active={card.favorite}
+          <Button
+            title="Edit"
+            icon="edit"
             disabled={busy}
-            onPress={favorite}
+            onPress={() =>
+              router.push({
+                pathname: '/(tabs)/cards/card-editor',
+                params: { cardId: card.id },
+              })
+            }
           />
         }
       />
-      <CreditCard {...card} revealed={revealed} />
-      <View style={[ui.row, { gap: 12 }]}>
-        <Button
-          title={revealed ? 'Hide details' : 'Reveal details'}
-          icon={revealed ? 'visibility-off' : 'visibility'}
-          secondary
-          onPress={() => setRevealed(!revealed)}
-          style={{ flex: 1 }}
-        />
-        <Button
-          title="Edit card"
-          icon="edit"
-          secondary
-          onPress={() =>
-            router.push({
-              pathname: '/(tabs)/cards/card-editor',
-              params: { cardId: card.id },
-            })
-          }
-          style={{ flex: 1 }}
-        />
-      </View>
+      <CreditCard
+        {...card}
+        revealed
+        favoriteDisabled={busy}
+        onFavoritePress={() => {
+          void favorite();
+        }}
+      />
       {error ? <Notice error>{error}</Notice> : null}
       {status !== 'valid' && (
         <Notice>
@@ -176,16 +146,11 @@ export default function CardDetailsScreen() {
       )}
       <Section
         title="Card details"
-        trailing={<Text style={ui.caption}>Tap to copy</Text>}
       >
         <View style={[ui.panel, { gap: 0, paddingVertical: 3 }]}>
           <DetailRow
             label="Card number"
-            value={
-              revealed
-                ? formatCardNumber(card.number)
-                : `•••• •••• •••• ${card.number.slice(-4)}`
-            }
+            value={formatCardNumber(card.number)}
             onPress={() => {
               void copy(card.number, 'Card number');
             }}
@@ -211,7 +176,7 @@ export default function CardDetailsScreen() {
           />
           <DetailRow
             label="Security code"
-            value={card.cvv ? (revealed ? card.cvv : '•••') : 'Not added'}
+            value={card.cvv ?? 'Not added'}
             onPress={
               card.cvv
                 ? () => {
@@ -331,15 +296,31 @@ function DetailRow({
   mono?: boolean;
   last?: boolean;
 }) {
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
+  const copyValue = () => {
+    if (!onPress) return;
+    onPress();
+    setCopied(true);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(false), 100);
+  };
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : 'text'}
       accessibilityLabel={onPress ? `Copy ${label.toLowerCase()}` : label}
-      onPress={onPress}
+      onPress={copyValue}
       disabled={!onPress}
-      style={[
+      style={({ pressed }) => [
         styles.detail,
         !last && { borderBottomWidth: 1, borderBottomColor: t.border },
+        (pressed || copied) && styles.detailCopied,
       ]}
     >
       <View style={{ flex: 1, gap: 6 }}>
@@ -357,7 +338,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 14,
     alignItems: 'center',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
     paddingVertical: 17,
+  },
+  detailCopied: {
+    backgroundColor: t.raised,
+    borderRadius: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
   },
   value: { color: t.text, fontSize: 15 },
   photos: { flexDirection: 'row', gap: 14 },

@@ -1,14 +1,3 @@
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
 import CreditCard from '@/components/creditcard';
 import {
   Button,
@@ -24,6 +13,17 @@ import { cardsStore, useCards } from '@/store/cardsStore';
 import { useSettings } from '@/store/settingsStore';
 import { matchesCard } from '@/utils/cardData';
 import { expiryStatus } from '@/utils/cardNumber';
+import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 type Filter = 'all' | 'favorites' | 'expiring';
 export default function CardsScreen() {
@@ -199,7 +199,6 @@ export default function CardsScreen() {
           </View>
         }
         renderItem={({ item }) => {
-          const status = expiryStatus(item.expiry);
           return (
             <Pressable
               accessibilityRole="button"
@@ -216,27 +215,6 @@ export default function CardsScreen() {
               ]}
             >
               <CreditCard {...item} revealed={!hideNumbers} />
-              <View style={styles.cardMeta}>
-                <View style={ui.row}>
-                  {(item.frontImage || item.backImage) && (
-                    <Icon name="photo-library" size={14} color={t.muted} />
-                  )}
-                  {item.note && <Icon name="notes" size={15} color={t.muted} />}
-                  <Text style={ui.caption}>
-                    {status === 'expired'
-                      ? 'Expired'
-                      : status === 'soon'
-                        ? 'Expires soon'
-                        : 'View details'}
-                  </Text>
-                  {status !== 'valid' && (
-                    <View
-                      style={[styles.dot, { backgroundColor: t.warning }]}
-                    />
-                  )}
-                </View>
-                <Icon name="arrow-forward" size={17} color={t.muted} />
-              </View>
             </Pressable>
           );
         }}
@@ -327,13 +305,6 @@ const styles = StyleSheet.create({
   filterActive: { backgroundColor: '#29351F' },
   filterText: { fontSize: 12, color: t.muted, fontWeight: '500' },
   cardWrap: { marginTop: 0 },
-  cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 6,
-    paddingTop: 12,
-  },
   footer: {
     color: t.subtle,
     textAlign: 'center',

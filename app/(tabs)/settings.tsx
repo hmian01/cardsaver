@@ -91,7 +91,7 @@ export default function SettingsScreen() {
             description={
               Platform.OS === 'web'
                 ? 'Available in the iOS and Android apps.'
-                : 'Protect the whole app. Locks after a minute away.'
+                : 'Protect the whole app. Locks after 10 seconds away.'
             }
             value={settings.biometricLockEnabled}
             disabled={busy || Platform.OS === 'web'}

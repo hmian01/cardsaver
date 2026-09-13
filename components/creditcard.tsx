@@ -1,23 +1,36 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { cardPalettes, Fonts } from '@/constants/theme';
-import { brandLabel, formatCardNumber } from '@/utils/cardNumber';
+import { cardPalettes, Fonts, theme as t } from '@/constants/theme';
 import type { CardFormData } from '@/store/cardsStore';
+import { expiryStatus, formatCardNumber } from '@/utils/cardNumber';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Icon } from './ui';
 
-type Props = CardFormData & { revealed?: boolean; compact?: boolean };
+type Props = CardFormData & {
+  revealed?: boolean;
+  compact?: boolean;
+  onFavoritePress?: () => void;
+  favoriteDisabled?: boolean;
+};
 export default function CreditCard({
   description,
   cardholder,
   number,
   expiry,
   brand,
+  frontImage,
+  backImage,
+  note,
   variant = 'jade',
   favorite,
   revealed = false,
   compact = false,
+  onFavoritePress,
+  favoriteDisabled = false,
 }: Props) {
   const p = cardPalettes[variant] ?? cardPalettes.jade;
+  const status = expiry ? expiryStatus(expiry) : 'valid';
+  const hasMetadata = Boolean(
+    frontImage || backImage || note || status !== 'valid',
+  );
   if (compact)
     return (
       <View style={[styles.mini, { backgroundColor: p.background }]}>
@@ -42,12 +55,47 @@ export default function CreditCard({
           <Text style={[styles.name, { color: p.text }]} numberOfLines={1}>
             {description || 'Your card'}
           </Text>
-          <Text style={[styles.type, { color: p.muted }]}>
-            {brandLabel(brand)}
-          </Text>
+          {hasMetadata && (
+            <View style={styles.metadata}>
+              {(frontImage || backImage) && (
+                <Icon name="photo-library" size={13} color={p.muted} />
+              )}
+              {note && <Icon name="notes" size={14} color={p.muted} />}
+              {status !== 'valid' && (
+                <>
+                  <Text style={[styles.metaText, { color: p.muted }]}> 
+                    {status === 'expired' ? 'Expired' : 'Expires soon'}
+                  </Text>
+                  <View style={styles.metaDot} />
+                </>
+              )}
+            </View>
+          )}
         </View>
-        {favorite && <Icon name="star" size={19} color={p.text} />}
-        <Icon name="contactless" size={27} color={p.muted} />
+        {onFavoritePress ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              favorite ? 'Remove from favorites' : 'Add to favorites'
+            }
+            accessibilityState={{ disabled: favoriteDisabled }}
+            disabled={favoriteDisabled}
+            onPress={onFavoritePress}
+            style={({ pressed }) => [
+              styles.favoriteButton,
+              { borderColor: p.muted },
+              (pressed || favoriteDisabled) && { opacity: 0.55 },
+            ]}
+          >
+            <Icon
+              name={favorite ? 'star' : 'star-border'}
+              size={23}
+              color={favorite ? t.warning : p.text}
+            />
+          </Pressable>
+        ) : (
+          favorite && <Icon name="star" size={30} color={t.warning} />
+        )}
       </View>
       <View style={styles.middle}>
         <View style={[styles.chip, { borderColor: p.muted }]}>
@@ -138,6 +186,30 @@ const styles = StyleSheet.create({
     opacity: 0.2,
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  metadata: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 14,
+  },
+  metaText: { fontSize: 11 },
+  metaDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: t.warning,
+  },
+  favoriteButton: {
+    width: 40,
+    height: 40,
+    marginTop: -9,
+    marginRight: -9,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   name: { fontSize: 20, fontWeight: '600', letterSpacing: -0.5 },
   type: { fontSize: 11 },
   middle: { gap: 13, marginVertical: 13 },

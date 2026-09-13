@@ -16,6 +16,7 @@ import { Button, Icon, ui } from './ui';
 
 export { useVaultVisible } from '@/store/vaultSession';
 let lastVerifiedAt = 0;
+const LOCK_AFTER_AWAY_MS = 10_000;
 export async function authenticate(): Promise<boolean> {
   if (Platform.OS === 'web')
     throw new Error('Biometric lock is available in the iOS and Android apps.');
@@ -81,7 +82,10 @@ export function VaultGate({ children }: React.PropsWithChildren) {
         awayAt.current ??= Date.now();
         setObscured(true);
       } else {
-        if (awayAt.current && Date.now() - awayAt.current >= 60_000)
+        if (
+          awayAt.current &&
+          Date.now() - awayAt.current >= LOCK_AFTER_AWAY_MS
+        )
           setUnlocked(false);
         awayAt.current = null;
         setObscured(false);

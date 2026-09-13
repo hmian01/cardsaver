@@ -1,17 +1,17 @@
-import { useIsFocused } from '@react-navigation/native';
-import { requireOptionalNativeModule } from 'expo';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { Button, Icon, IconButton, Notice, Screen, ui } from '@/components/ui';
 import { useVaultVisible } from '@/components/vault-gate';
 import { theme as t } from '@/constants/theme';
 import { setScanDraft } from '@/store/scanDraft';
 import { brandLabel, detectBrand, formatCardNumber } from '@/utils/cardNumber';
 import { extractCardData } from '@/utils/cardScanner';
+import { useIsFocused } from '@react-navigation/native';
+import { requireOptionalNativeModule } from 'expo';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 
 const ocr =
   Platform.OS === 'web'
@@ -26,6 +26,7 @@ export default function CameraScreen() {
   const visible = useVaultVisible();
   const [permission, requestPermission] = useCameraPermissions();
   const camera = useRef<CameraView>(null);
+  const cameraReady = useRef(false);
   const [ready, setReady] = useState(false);
   const [torch, setTorch] = useState(false);
   const [detected, setDetected] = useState<{
@@ -44,7 +45,10 @@ export default function CameraScreen() {
   const active =
     focused && visible && permission?.granted && supported && !detected;
   useEffect(() => {
-    if (!active) setReady(false);
+    if (!active) {
+      cameraReady.current = false;
+      setReady(false);
+    }
     if (!focused) {
       setDetected(null);
       setTorch(false);
@@ -53,8 +57,9 @@ export default function CameraScreen() {
     }
   }, [active, focused]);
   useEffect(() => {
-    if (!active || !ready) return;
+    if (!active || !ready || !cameraReady.current) return;
     let canceled = false;
+    const scanningStartedAt = Date.now();
     const capture = async () => {
       if (processing.current || !camera.current || canceled) return;
       processing.current = true;
@@ -91,7 +96,7 @@ export default function CameraScreen() {
           setHits(0);
         }
       } catch {
-        if (!canceled)
+        if (!canceled && Date.now() - scanningStartedAt >= 2_000)
           setError(
             'Couldn’t read the card. Adjust the lighting and try again.',
           );
@@ -106,7 +111,7 @@ export default function CameraScreen() {
     void capture();
     const timer = setInterval(() => {
       void capture();
-    }, 1800);
+    }, 300);
     return () => {
       canceled = true;
       clearInterval(timer);
@@ -153,7 +158,10 @@ export default function CameraScreen() {
             style={StyleSheet.absoluteFill}
             facing="back"
             enableTorch={torch}
-            onCameraReady={() => setReady(true)}
+            onCameraReady={() => {
+              cameraReady.current = true;
+              setReady(true);
+            }}
             onMountError={() =>
               setError(
                 'The camera is unavailable. You can add your card manually.',

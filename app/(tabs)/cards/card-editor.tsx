@@ -109,6 +109,7 @@ function Editor({
         };
   });
   const [form, setForm] = useState(initial);
+  const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [errors, setErrors] = useState<
     Partial<Record<keyof CardFormData, string>>
   >({});
@@ -211,11 +212,13 @@ function Editor({
       setLeave('saved');
     } catch (e) {
       await removeImages(created, cardsStore.getSnapshot().cards);
-      setError(
+      const message =
         e instanceof Error
           ? e.message
-          : 'Could not save this card. Check your device storage and try again.',
-      );
+          : 'Could not save this card. Check your device storage and try again.';
+      setError(message);
+      if (message === 'This card is already in your wallet.')
+        notify(message, 'error');
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -227,32 +230,36 @@ function Editor({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Screen>
-        <Header title={existing ? 'Edit card' : 'Add a card'} />
-        <CreditCard {...form} brand={detectBrand(form.number)} revealed />
-        <View style={styles.colors}>
-          {CARD_VARIANTS.map((variant) => (
+        <Header
+          title={existing ? 'Edit card' : 'Add a card'}
+          right={
             <Pressable
-              key={variant}
-              accessibilityRole="radio"
-              accessibilityLabel={`${variant} card color`}
-              accessibilityState={{ checked: form.variant === variant }}
-              onPress={() => update('variant', variant)}
-              style={[
-                styles.color,
-                { backgroundColor: cardPalettes[variant].background },
-                form.variant === variant && { borderColor: t.accent },
+              accessibilityRole="button"
+              accessibilityLabel="Choose card color"
+              accessibilityHint="Opens the card color picker"
+              disabled={busy}
+              onPress={() => setColorPickerVisible(true)}
+              style={({ pressed }) => [
+                styles.colorTrigger,
+                { backgroundColor: cardPalettes[form.variant].background },
+                (pressed || busy) && { opacity: 0.65 },
               ]}
             >
-              {form.variant === variant && (
-                <Icon
-                  name="check"
-                  color={cardPalettes[variant].text}
-                  size={19}
-                />
-              )}
+              <Icon
+                name="palette"
+                color={cardPalettes[form.variant].text}
+                size={20}
+              />
             </Pressable>
-          ))}
-        </View>
+          }
+        />
+        <CreditCard
+          {...form}
+          brand={detectBrand(form.number)}
+          revealed
+          favoriteDisabled={busy}
+          onFavoritePress={() => update('favorite', !form.favorite)}
+        />
         {error ? <Notice error>{error}</Notice> : null}
         <Section title="The essentials">
           <Field
@@ -391,8 +398,41 @@ function Editor({
           onPress={save}
         />
       </Screen>
-      <Dialog
-        visible={photoSide !== null}
+        <Dialog
+          visible={colorPickerVisible}
+          title="Card color"
+          onClose={() => setColorPickerVisible(false)}
+        >
+          <View style={styles.colorPicker}>
+            {CARD_VARIANTS.map((variant) => (
+              <Pressable
+                key={variant}
+                accessibilityRole="radio"
+                accessibilityLabel={`${variant} card color`}
+                accessibilityState={{ checked: form.variant === variant }}
+                onPress={() => {
+                  update('variant', variant);
+                  setColorPickerVisible(false);
+                }}
+                style={[
+                  styles.colorOption,
+                  { backgroundColor: cardPalettes[variant].background },
+                  form.variant === variant && { borderColor: t.accent },
+                ]}
+              >
+                {form.variant === variant && (
+                  <Icon
+                    name="check"
+                    color={cardPalettes[variant].text}
+                    size={19}
+                  />
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </Dialog>
+        <Dialog
+          visible={photoSide !== null}
         title={`Add ${photoSide === 'frontImage' ? 'front' : 'back'} photo`}
         onClose={() => setPhotoSide(null)}
         onDismiss={() => {
@@ -433,14 +473,22 @@ function Editor({
   );
 }
 const styles = StyleSheet.create({
-  colors: {
+  colorTrigger: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: t.border,
+  },
+  colorPicker: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 13,
-    marginTop: -10,
   },
-  color: {
+  colorOption: {
     width: 44,
     height: 44,
     borderRadius: 22,
